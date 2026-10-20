@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { supabase, type Contest, type Round, type Task, KIND_LABEL } from "../../../../lib/supabase";
+import { api, KIND_LABEL, type AdminContest as Contest, type AdminRound as Round, type AdminTask as Task } from "../../../../lib/client";
 import TaskEditor from "../../TaskEditor";
 import OperatorConsole from "../../OperatorConsole";
 import RecheckPanel from "../../RecheckPanel";
@@ -24,20 +24,13 @@ export default function ContestPage() {
   const [edit, setEdit] = useState<{ title: string; startsLocal: string } | null>(null);
 
   const load = useCallback(async () => {
-    const [c, r] = await Promise.all([
-      supabase.from("contests").select("*").eq("id", id).single(),
-      supabase.from("rounds").select("*").eq("contest_id", id).order("idx"),
-    ]);
-    if (c.error) return setMsg("! " + c.error.message);
-    setContest(c.data as Contest);
-    const rs = (r.data ?? []) as Round[];
-    setRounds(rs);
-    if (rs.length) {
-      const { data: t } = await supabase
-        .from("tasks").select("*")
-        .in("round_id", rs.map((x) => x.id))
-        .order("idx");
-      setTasks((t ?? []) as Task[]);
+    try {
+      const b = await api.admin.contest(id);
+      setContest(b.contest);
+      setRounds(b.rounds);
+      setTasks(b.tasks);
+    } catch (e) {
+      setMsg("! " + (e as Error).message);
     }
   }, [id]);
 
@@ -45,15 +38,17 @@ export default function ContestPage() {
   // Кезең күйі (басталды/аяқталды) басқа әкімшінің әрекетімен де өзгереді
   useEffect(() => {
     const t = setInterval(() => {
-      supabase.from("rounds").select("*").eq("contest_id", id).order("idx")
-        .then(({ data }) => data && setRounds(data as Round[]));
+      api.admin.contest(id).then((b) => setRounds(b.rounds)).catch(() => {});
     }, 15_000);
     return () => clearInterval(t);
   }, [id]);
 
   async function setStatus(status: Contest["status"]) {
-    const { error } = await supabase.from("contests").update({ status }).eq("id", id);
-    if (error) return setMsg("! " + error.message);
+    try {
+      await api.admin.updateContest(id, { status });
+    } catch (e) {
+      return setMsg("! " + (e as Error).message);
+    }
     setContest((c) => (c ? { ...c, status } : c));
   }
 
@@ -71,8 +66,11 @@ export default function ContestPage() {
     if (!title) return setMsg("! жарыстың атауы керек");
     if (isNaN(t.getTime())) return setMsg("! басталу уақытын дұрыс енгізіңіз");
     const starts_at = t.toISOString();
-    const { error } = await supabase.from("contests").update({ title, starts_at }).eq("id", id);
-    if (error) return setMsg("! " + error.message);
+    try {
+      await api.admin.updateContest(id, { title, starts_at });
+    } catch (e) {
+      return setMsg("! " + (e as Error).message);
+    }
     setContest((c) => (c ? { ...c, title, starts_at } : c));
     setEdit(null);
     setMsg("");
@@ -80,8 +78,11 @@ export default function ContestPage() {
 
   async function removeTask(t: Task) {
     if (!confirm(`«${t.title}» тапсырмасы өшірілсін бе?`)) return;
-    const { error } = await supabase.from("tasks").delete().eq("id", t.id);
-    if (error) return setMsg("! " + error.message);
+    try {
+      await api.admin.deleteTask(t.id);
+    } catch (e) {
+      return setMsg("! " + (e as Error).message);
+    }
     load();
   }
 
