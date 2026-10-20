@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { isServerConfigured, supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import { isServerConfigured } from "../../../../lib/server/auth";
+import { getStore } from "../../../../lib/server/store";
 import { currentContest } from "../../../../lib/contest/server";
 import { publicName } from "../../../../lib/publicName";
 
@@ -30,13 +31,9 @@ let inflight: Promise<Payload> | null = null;
 
 async function build(): Promise<Payload> {
   const contest = await currentContest();
-  const { data, count, error } = await supabaseAdmin()
-    .from("students")
-    .select("full_name", { count: "exact" })
-    .order("first_login_at", { ascending: false })
-    .limit(MAX_NAMES);
-  if (error) throw new Error(error.message);
-  const names = (data ?? []).map((r) => publicName(r.full_name as string));
+  const store = getStore();
+  const [rows, count] = await Promise.all([store.listStudents({ order: "newest", limit: MAX_NAMES }), store.countStudents()]);
+  const names = rows.map((r) => publicName(r.full_name));
   return {
     ok: true,
     serverNow: new Date().toISOString(),

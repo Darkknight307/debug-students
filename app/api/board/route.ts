@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isServerConfigured } from "../../../lib/supabaseAdmin";
+import { isServerConfigured } from "../../../lib/server/auth";
 import { contestRounds, currentContest, isBoardLocked } from "../../../lib/contest/server";
 import { ranking } from "../../../lib/contest/ranking";
 
