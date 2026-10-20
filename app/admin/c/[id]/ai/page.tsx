@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "../../../../../lib/supabase";
+import { api } from "../../../../../lib/client";
 import {
   LEVEL_HIGH, LEVEL_MEDIUM, analyze,
   type ActivityRow, type Level, type RoundLite, type StudentLite, type StudentReport, type SubLite, type TaskLite,
@@ -66,30 +66,8 @@ export default function AiAnalysisPage() {
   const load = useCallback(async () => {
     setErr("");
     try {
-      const c = await supabase.from("contests").select("title").eq("id", id).single();
-      if (c.error) throw new Error(c.error.message);
-      const r = await supabase.from("rounds").select("id, idx, kind, started_at, ends_at").eq("contest_id", id).order("idx");
-      if (r.error) throw new Error(r.error.message);
-      const rounds = (r.data ?? []) as RoundLite[];
-      const t = await supabase.from("tasks").select("*").in("round_id", rounds.map((x) => x.id)).order("idx");
-      if (t.error) throw new Error(t.error.message);
-      const subs = await fetchAll<SubLite>((from, to) =>
-        supabase.from("submissions").select("id, student_id, task_id, code, is_correct, points, created_at").eq("contest_id", id).order("id").range(from, to));
-      const ids = [...new Set(subs.map((s) => s.student_id))];
-      const students: StudentLite[] = [];
-      for (let i = 0; i < ids.length; i += 100) {
-        const s = await supabase.from("students").select("id, full_name").in("id", ids.slice(i, i + 100));
-        if (s.error) throw new Error(s.error.message);
-        students.push(...((s.data ?? []) as StudentLite[]));
-      }
-      // Бақылау кестесі 007_activity.sql орындалғанда ғана бар — жоқ болса, онсыз талдаймыз
-      let activity: ActivityRow[] = [], activityTable = true;
-      try {
-        activity = await fetchAll<ActivityRow>((from, to) => supabase.from("activity").select("student_id, round_id, data").eq("contest_id", id).range(from, to));
-      } catch {
-        activityTable = false;
-      }
-      setData({ title: (c.data as { title: string }).title, rounds, tasks: (t.data ?? []) as TaskLite[], students, subs, activity, activityTable });
+      const d = await api.admin.analysis(id);
+      setData({ ...d, rounds: d.rounds as RoundLite[], tasks: d.tasks as TaskLite[], students: d.students as StudentLite[], subs: d.subs as SubLite[], activity: d.activity as unknown as ActivityRow[], activityTable: true });
     } catch (e) {
       setErr((e as Error).message);
     }
@@ -161,9 +139,7 @@ export default function AiAnalysisPage() {
 
       {(!ov.hasActivity || !ov.hasAiRefs) && (
         <p className="tiny ai-hint">
-          {!ov.hasActivity && (data.activityTable
-            ? "Бұл жарыста бақылау дерегі жоқ (беттен шығу, қоюға тырысу, теру қарқыны) — ол келесі жарыстардан бастап жиналады. "
-            : "Бақылау кестесі әлі жоқ: supabase/007_activity.sql файлын орындасаңыз, келесі жарыстарда беттен шығу мен теру қарқыны да есепке алынады. ")}
+          {!ov.hasActivity && "Бұл жарыста бақылау дерегі жоқ (беттен шығу, қоюға тырысу, теру қарқыны) — ол келесі жарыстардан бастап жиналады. "}
           {!ov.hasAiRefs && "Тапсырма редакторында «ЖИ үлгі жауабын» қоссаңыз, студент кодтары сонымен де салыстырылады."}
         </p>
       )}

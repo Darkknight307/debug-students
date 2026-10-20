@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabase, type Round, type Task } from "../../lib/supabase";
+import { api, type AdminRound as Round, type AdminTask as Task } from "../../lib/client";
 import { normalizeAnswer } from "../../lib/contest/rules";
 import { pyRunner } from "../../lib/contest/pyRunner";
 
@@ -28,21 +28,12 @@ export default function RecheckPanel({ contestId, rounds, tasks }: { contestId: 
     setCells({});
     setProgress("рейтинг алынуда…");
     try {
-      const { data: rank, error } = await supabase.rpc("admin_contest_ranking", { p_contest: contestId });
-      if (error) throw new Error(error.message);
+      const rank = await api.admin.ranking(contestId);
       const leaders = ((rank ?? []) as RankRow[]).slice(0, top);
       setRows(leaders);
       if (!leaders.length || !codeTasks.length) return setProgress("тексеретін ештеңе жоқ");
 
-      const { data: subs, error: e2 } = await supabase
-        .from("submissions")
-        .select("id, student_id, task_id, code, is_correct, created_at")
-        .eq("contest_id", contestId)
-        .in("student_id", leaders.map((l) => l.student_id))
-        .in("task_id", codeTasks.map((t) => t.id))
-        .order("created_at", { ascending: false })
-        .order("id", { ascending: false });
-      if (e2) throw new Error(e2.message);
+      const subs = await api.admin.recheckSubmissions(contestId, leaders.map((l) => l.student_id), codeTasks.map((t) => t.id));
 
       const last = new Map<string, { code: string | null; is_correct: boolean }>();
       for (const s of subs ?? []) {
