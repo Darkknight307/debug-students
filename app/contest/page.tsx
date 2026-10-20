@@ -7,7 +7,10 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "DEBUG · Жарыс" };
 
 export default async function ContestPage() {
-  const s = await currentStudent().catch(() => null);
-  if (!s) redirect("/login?next=/contest");
+  // mock режимінде сервер студентті білмейді — тексеруді клиент жасайды (api.contest.state → /login)
+  if (process.env.NEXT_PUBLIC_API_MODE !== "mock") {
+    const s = await currentStudent().catch(() => null);
+    if (!s) redirect("/login?next=/contest");
+  }
   return <ContestClient />;
 }

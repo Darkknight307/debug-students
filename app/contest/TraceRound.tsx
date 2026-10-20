@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Rich from "./Rich";
-import { postJson, type McqTask, type Mine } from "./types";
+import { type McqTask, type Mine } from "./types";
+import { api } from "../../lib/client";
 
 type SaveState = "saving" | "saved" | "error";
 
@@ -21,7 +22,7 @@ export default function TraceRound({ tasks, mine, locked }: { tasks: McqTask[]; 
     if (locked) return;
     setPicked((p) => ({ ...p, [task.id]: key }));
     setSaving((s) => ({ ...s, [task.id]: "saving" }));
-    const { data } = await postJson("/api/contest/answer", { taskId: task.id, choice: key });
+    const { data } = await api.contest.answer(task.id, key);
     setSaving((s) => ({ ...s, [task.id]: data.ok ? "saved" : "error" }));
     setErr((e) => ({ ...e, [task.id]: data.ok ? "" : data.message || "Сақталмады" }));
   }

@@ -1,3 +1,4 @@
+import { api } from "../client";
 /**
  * Бақылау дерегі (тек браузерде). Жарыс кезінде мыналарды санайды:
  *   - оқушы беттен неше рет шықты және қанша уақыт сыртта болды (басқа қойынды / басқа қолданба);
@@ -127,16 +128,8 @@ export class Telemetry {
     if (!this.dirty) return;
     this.dirty = false;
     const body = JSON.stringify({ roundId: this.roundId, data: this.data });
-    try {
-      if (beacon && navigator.sendBeacon) {
-        navigator.sendBeacon("/api/contest/activity", new Blob([body], { type: "application/json" }));
-        return;
-      }
-      fetch("/api/contest/activity", { method: "POST", headers: { "content-type": "application/json" }, body, keepalive: true }).catch(() => {
-        this.dirty = true; // келесі жолы қайта жіберіледі
-      });
-    } catch {
-      this.dirty = true;
-    }
+    api.contest.activity(body, beacon).then((sent) => {
+      if (!sent && !beacon) this.dirty = true; // келесі жолы қайта жіберіледі
+    });
   }
 }

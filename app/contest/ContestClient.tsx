@@ -7,6 +7,7 @@ import CodeRound from "./CodeRound";
 import { pyRunner } from "../../lib/contest/pyRunner";
 import { Telemetry } from "../../lib/contest/telemetry";
 import Decode from "../ui/Decode";
+import { api } from "../../lib/client";
 import {
   KIND_HINT, KIND_SHORT, fmtClock,
   type ActiveFull, type CodeTask, type McqTask, type StateResponse,
@@ -55,13 +56,8 @@ export default function ContestClient() {
 
     async function fetchState(withTasks: boolean): Promise<StateResponse | null> {
       const t0 = Date.now();
-      const r = await fetch(`/api/contest/state${withTasks ? "?full=1" : ""}`, { cache: "no-store" });
-      if (r.status === 401) {
-        window.location.href = "/login";
-        return null;
-      }
-      const d = (await r.json()) as StateResponse;
-      if (!d.ok) throw new Error(d.message || "Сервер қатесі");
+      const d = await api.contest.state(withTasks);
+      if (!d) return null;
       const rtt = Date.now() - t0;
       offset.current = Date.parse(d.serverNow) + rtt / 2 - Date.now();
       return d;

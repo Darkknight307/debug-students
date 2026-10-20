@@ -6,7 +6,8 @@ import Rich from "./Rich";
 import { changedLines, checkCode } from "../../lib/contest/rules";
 import { pyRunner } from "../../lib/contest/pyRunner";
 import type { Telemetry } from "../../lib/contest/telemetry";
-import { postJson, pyRepr, type CodeTask, type Kind, type Mine } from "./types";
+import { pyRepr, type CodeTask, type Kind, type Mine } from "./types";
+import { api } from "../../lib/client";
 
 type CheckRow = { call: string; expected: string; got: string; pass: boolean };
 type Panel =
@@ -119,16 +120,16 @@ export default function CodeRound({
     setBusy("submit");
     setPanel(null);
     try {
-      const ch = await postJson<{ token: string; inputs: unknown[][] }>("/api/contest/challenge", { taskId: task.id });
+      const ch = await api.contest.challenge(task.id);
       if (!ch.data.ok) return setPanel({ type: "msg", tone: "err", text: ch.data.message || "Қате" });
 
       const out = await pyRunner().run(code, task.entry, ch.data.inputs, 8_000);
       const outputs = out.results.map((r) => String(r).slice(0, 2000));
-      const sub = await postJson<{ correct: boolean }>("/api/contest/submit", { taskId: task.id, token: ch.data.token, code, outputs });
+      const sub = await api.contest.submit({ taskId: task.id, token: ch.data.token, code, outputs });
       if (!sub.data.ok) return setPanel({ type: "msg", tone: sub.status === 422 ? "warn" : "err", text: sub.data.message || "Қате" });
 
-      setPanel({ type: "verdict", correct: sub.data.correct, points: task.points });
-      onVerdict(task.id, sub.data.correct);
+      setPanel({ type: "verdict", correct: !!sub.data.correct, points: task.points });
+      onVerdict(task.id, !!sub.data.correct);
       telemetry?.flush();
     } catch (e) {
       setPanel({ type: "msg", tone: "err", text: (e as Error).message });
