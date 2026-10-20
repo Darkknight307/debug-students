@@ -4,21 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Decode from "../ui/Decode";
 import { COURSES, PASSWORD_MIN, formatPhone, normalizePhone } from "../../lib/registration";
+import { api } from "../../lib/client";
 
 export type Tab = "login" | "register" | "forgot";
 type Notice = { text: string; err?: boolean } | null;
-type Reply = { ok?: boolean; message?: string; field?: string; unconfirmed?: boolean; needsConfirm?: boolean; loggedIn?: boolean };
 
 const HEAD: Record<Tab, { title: string; lead: string; file: string }> = {
   login: { title: "Кіру", lead: "Тіркелген email мен құпия сөзіңізді енгізіңіз.", file: "~/debug/login.sh" },
   register: { title: "Тіркелу", lead: "Бір минуттық форма. Тіркелген соң қатысушылар тізіміне қосыласыз.", file: "~/debug/register.sh" },
   forgot: { title: "Құпия сөзді қалпына келтіру", lead: "Тіркелген email-ді енгізіңіз — жаңа құпия сөз қоятын сілтеме жібереміз.", file: "~/debug/recover.sh" },
 };
-
-async function post(path: string, body: unknown): Promise<{ status: number; data: Reply }> {
-  const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  return { status: res.status, data: (await res.json().catch(() => ({}))) as Reply };
-}
 
 export default function AuthPanel({ initialTab, emailsEnabled, notice }: { initialTab: Tab; emailsEnabled: boolean; notice: Notice }) {
   const router = useRouter();
@@ -36,6 +31,12 @@ export default function AuthPanel({ initialTab, emailsEnabled, notice }: { initi
     if (badField === k) setBadField("");
   };
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Кірген студент жарыс бетіне (http режимінде мұны сервер жасайды; mock режимінде — осы жер)
+  useEffect(() => {
+    if (api.mode !== "mock") return;
+    api.auth.me().then((m) => m.loggedIn && router.replace("/contest"));
+  }, [router]);
 
   // Қате өріске фокус: студент нені түзету керегін бірден көреді
   useEffect(() => {
@@ -67,7 +68,7 @@ export default function AuthPanel({ initialTab, emailsEnabled, notice }: { initi
     setUnconfirmed(false);
     try {
       if (tab === "login") {
-        const { status, data } = await post("/api/auth/login", { email: f.email, password: f.password });
+        const { status, data } = await api.auth.login(f.email, f.password);
         if (status === 200 && data.ok) {
           setF((v) => ({ ...v, password: "" }));
           router.replace("/contest");
@@ -77,7 +78,7 @@ export default function AuthPanel({ initialTab, emailsEnabled, notice }: { initi
         if (data.unconfirmed) setUnconfirmed(true);
         error(data.message || "Кіру мүмкін болмады. Қайталап көріңіз.");
       } else if (tab === "register") {
-        const { status, data } = await post("/api/auth/register", f);
+        const { status, data } = await api.auth.register(f);
         if (status === 200 && data.ok) {
           setF((v) => ({ ...v, password: "" }));
           if (data.loggedIn) {
@@ -90,7 +91,7 @@ export default function AuthPanel({ initialTab, emailsEnabled, notice }: { initi
           error(data.message || "Тіркелу мүмкін болмады. Қайталап көріңіз.", data.field || "");
         }
       } else {
-        const { status, data } = await post("/api/auth/forgot", { email: f.email });
+        const { status, data } = await api.auth.forgot(f.email);
         if (status === 200 && data.ok) setSentTo(f.email.trim());
         else error(data.message || "Хат жіберілмеді. Қайталап көріңіз.", status === 400 ? "email" : "");
       }
@@ -104,7 +105,7 @@ export default function AuthPanel({ initialTab, emailsEnabled, notice }: { initi
     if (busy) return;
     setBusy(true);
     try {
-      const { status, data } = await post("/api/auth/resend", { email: sentTo || f.email });
+      const { status, data } = await api.auth.resend(sentTo || f.email);
       setMsg(status === 200 ? { text: "Хат қайта жіберілді. Поштаңызды (спам қалтасын да) тексеріңіз." } : { text: data.message || "Хат жіберілмеді.", err: true });
     } catch {
       setMsg({ text: "Байланыс жоқ. Интернетті тексеріп, қайталаңыз.", err: true });

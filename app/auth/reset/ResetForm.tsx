@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PASSWORD_MIN } from "../../../lib/registration";
+import { api } from "../../../lib/client";
 
 export default function ResetForm({ tokenHash }: { tokenHash: string }) {
   const router = useRouter();
@@ -27,13 +28,8 @@ export default function ResetForm({ tokenHash }: { tokenHash: string }) {
     setBusy(true);
     setMsg("");
     try {
-      const res = await fetch("/api/auth/reset", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tokenHash, password }),
-      });
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; loggedIn?: boolean; message?: string; field?: string };
-      if (res.ok && data.ok) {
+      const { status, data } = await api.auth.reset(tokenHash, password);
+      if (status === 200 && data.ok) {
         setPassword("");
         setRepeat("");
         if (data.loggedIn) {
@@ -43,7 +39,7 @@ export default function ResetForm({ tokenHash }: { tokenHash: string }) {
         }
         setDone(true);
       } else {
-        if (res.status === 400 && data.field !== "password") setExpired(true);
+        if (status === 400 && data.field !== "password") setExpired(true);
         error(data.message || "Құпия сөз сақталмады. Қайталап көріңіз.");
       }
     } catch {
