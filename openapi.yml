@@ -1,0 +1,535 @@
+openapi: 3.1.0
+info:
+  title: DEBUG · Студенттер API
+  version: 1.0.0
+  description: |
+    HTTP contract between the frontend (`lib/client`) and the backend (Next.js route handlers → `lib/server` → `Store`).
+    Student-facing responses are camelCase, admin rows are snake_case. Every JSON response has `ok: boolean`;
+    errors carry `message` (Kazakh, shown to the user) and sometimes `field`.
+    Sessions are httpOnly cookies: `debug_session` (student) and `debug_admin` (admin). All POST bodies are JSON
+    (`application/json`) — other content types get 415 (CSRF protection), except image upload.
+    Test-only routes under `/api/__test/*` exist only with `E2E_TEST_HOOKS=1` and are not part of this contract.
+servers:
+  - url: http://localhost:3000
+tags:
+  - name: public
+  - name: auth
+  - name: contest
+  - name: admin
+
+components:
+  securitySchemes:
+    studentSession: { type: apiKey, in: cookie, name: debug_session }
+    adminSession: { type: apiKey, in: cookie, name: debug_admin }
+  responses:
+    Error:
+      description: Error with a user-facing message
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    Error:
+      type: object
+      required: [ok, message]
+      properties:
+        ok: { type: boolean, const: false }
+        message: { type: string }
+        field: { type: string, description: "invalid input field (registration)" }
+    Ok:
+      type: object
+      required: [ok]
+      properties: { ok: { type: boolean, const: true } }
+    TestCase:
+      type: object
+      required: [args, expected]
+      properties:
+        args: { type: array, items: {} }
+        expected: { type: string, description: "Python repr of the expected return value" }
+    McqOption:
+      type: object
+      required: [key, text]
+      properties: { key: { type: string }, text: { type: string } }
+    RegisterInput:
+      type: object
+      required: [lastName, firstName, university, course, email, password]
+      properties:
+        lastName: { type: string, maxLength: 50 }
+        firstName: { type: string, maxLength: 50 }
+        university: { type: string, minLength: 2, maxLength: 120 }
+        course: { type: string, enum: ["1 курс", "2 курс", "3 курс", "4 курс", "5 курс", "6 курс", "Магистратура", "Докторантура"] }
+        phone: { type: string, description: "optional; KZ numbers normalised to +7XXXXXXXXXX" }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8, description: "max 72 bytes" }
+    Me:
+      oneOf:
+        - type: object
+          properties: { loggedIn: { const: false } }
+        - type: object
+          required: [loggedIn, name, profile]
+          properties:
+            loggedIn: { const: true }
+            name: { type: string, description: "«Тегі Аты»" }
+            profile:
+              type: object
+              properties:
+                fullName: { type: string }
+                university: { type: string }
+                course: { type: [string, "null"] }
+                emailMasked: { type: string, example: "ai•••@mock.test" }
+                phoneMasked: { type: string, example: "••• ••• 00 01" }
+    RoundInfo:
+      type: object
+      properties:
+        id: { type: string }
+        idx: { type: integer }
+        kind: { type: string, enum: [mcq, debug, code] }
+        title: { type: string }
+        durationMin: { type: integer }
+        state: { type: string, enum: [pending, open, closed] }
+        endsAt: { type: [string, "null"], format: date-time }
+    PublicTask:
+      type: object
+      description: Never contains `correct`, `solution_code`, `tests_hidden`, `ai_refs`.
+      properties:
+        id: { type: string }
+        idx: { type: integer }
+        title: { type: string }
+        statement: { type: string, description: markdown }
+        points: { type: integer }
+        image_url: { type: [string, "null"] }
+        options: { type: array, items: { $ref: "#/components/schemas/McqOption" } }
+        starter_code: { type: string }
+        entry: { type: string }
+        max_changed_lines: { type: [integer, "null"] }
+        forbidden: { type: array, items: { type: string } }
+        tests_public: { type: array, items: { $ref: "#/components/schemas/TestCase" } }
+    StateResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        serverNow: { type: string, format: date-time }
+        student: { type: object, properties: { fullName: { type: string } } }
+        contest:
+          type: [object, "null"]
+          properties: { id: { type: string }, title: { type: string }, status: { type: string }, startsAt: { type: string, format: date-time } }
+        rounds: { type: array, items: { $ref: "#/components/schemas/RoundInfo" } }
+        active:
+          type: [object, "null"]
+          description: "With `?full=1`: plus title, endsAt, variant, tasks, mine"
+          properties:
+            roundId: { type: string }
+            idx: { type: integer }
+            kind: { type: string, enum: [mcq, debug, code] }
+            variant: { type: [string, "null"], enum: [A, B, null] }
+            tasks: { type: array, items: { $ref: "#/components/schemas/PublicTask" } }
+            mine: { type: object, additionalProperties: { type: object, properties: { answer: { type: string }, code: { type: string }, verdict: { type: string, enum: [correct, wrong] } } } }
+        me: { type: [object, "null"], properties: { rank: { type: [integer, "null"] }, score: { type: integer }, total: { type: integer } } }
+        boardLocked: { type: boolean }
+    Landing:
+      type: object
+      properties:
+        ok: { type: boolean }
+        serverNow: { type: string, format: date-time }
+        contest: { type: [object, "null"], properties: { title: { type: string }, startsAt: { type: string }, status: { type: string } } }
+        students: { type: object, properties: { count: { type: integer }, names: { type: array, items: { type: string }, description: "«Тегі Аты» only, newest first, ≤ 300" } } }
+    Board:
+      type: object
+      properties:
+        ok: { type: boolean }
+        locked: { type: boolean }
+        idle: { type: boolean, description: "no contest or nothing started" }
+        rows: { type: array, maxItems: 10, items: { type: object, properties: { rank: { type: integer }, name: { type: string }, score: { type: integer } } } }
+        total: { type: integer }
+        updated: { type: string, format: date-time }
+        stale: { type: boolean }
+        note: { type: string }
+    AdminContest:
+      type: object
+      properties:
+        id: { type: string }
+        slug: { type: string }
+        title: { type: string }
+        starts_at: { type: string, format: date-time }
+        status: { type: string, enum: [draft, published, running, finished] }
+        board_locked: { type: boolean }
+        board_autolock_min: { type: integer }
+    AdminRound:
+      type: object
+      properties:
+        id: { type: string }
+        contest_id: { type: string }
+        idx: { type: integer }
+        kind: { type: string, enum: [mcq, debug, code] }
+        title: { type: string }
+        duration_min: { type: integer }
+        status: { type: string, enum: [pending, running, closed] }
+        started_at: { type: [string, "null"] }
+        ends_at: { type: [string, "null"] }
+    TaskInput:
+      type: object
+      required: [round_id, idx, title]
+      properties:
+        round_id: { type: string }
+        idx: { type: integer }
+        title: { type: string }
+        statement: { type: string }
+        points: { type: integer, minimum: 0 }
+        options: { type: [array, "null"], items: { $ref: "#/components/schemas/McqOption" } }
+        correct: { type: [string, "null"] }
+        starter_code: { type: [string, "null"] }
+        solution_code: { type: [string, "null"] }
+        variant: { type: [string, "null"], enum: [A, B, null] }
+        image_url: { type: [string, "null"] }
+        entry: { type: [string, "null"] }
+        max_changed_lines: { type: [integer, "null"] }
+        forbidden: { type: array, items: { type: string } }
+        ai_refs: { type: array, items: { type: string } }
+        tests_public: { type: array, items: { $ref: "#/components/schemas/TestCase" } }
+        tests_hidden: { type: array, items: { $ref: "#/components/schemas/TestCase" } }
+    AdminTask:
+      allOf:
+        - $ref: "#/components/schemas/TaskInput"
+        - type: object
+          properties: { id: { type: string } }
+    RankRow:
+      type: object
+      properties:
+        rank: { type: integer }
+        student_id: { type: string }
+        name: { type: string }
+        score: { type: integer }
+        last_correct_at: { type: [string, "null"] }
+        total: { type: integer }
+
+paths:
+  # ---------------- public ----------------
+  /api/public/landing:
+    get:
+      tags: [public]
+      summary: Current contest and participant list for the landing page (cached 15 s)
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Landing" } } } }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/board:
+    get:
+      tags: [public]
+      summary: Live leaderboard top 10 (locked in the last N minutes)
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Board" } } } }
+  /api/cron/keepalive:
+    get:
+      tags: [public]
+      summary: Daily cron ping (Bearer CRON_SECRET in production); touches the database, returns no data
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Ok" } } } }
+        "401": { $ref: "#/components/responses/Error" }
+  /api/images/{id}:
+    get:
+      tags: [public]
+      summary: A Trace task image stored in the database
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: Image bytes, content: { image/*: {} } }
+        "404": { description: Not found }
+
+  # ---------------- auth ----------------
+  /api/auth/register:
+    post:
+      tags: [auth]
+      summary: Register a student and log in (sets debug_session)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/RegisterInput" } } } }
+      responses:
+        "200": { description: Registered and logged in, content: { application/json: { schema: { type: object, properties: { ok: { const: true }, loggedIn: { const: true }, student: { type: object, properties: { fullName: { type: string } } } } } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { description: Email already registered (`field: email`), content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "415": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: Student login with email + password (sets debug_session)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email, password], properties: { email: { type: string }, password: { type: string } } } } } }
+      responses:
+        "200": { description: OK }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { description: «Email немесе құпия сөз қате.», content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "403": { description: Account is not a student (e.g. admin), content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "429": { description: Too many failed attempts (8 per email / 60 per IP in 10 min), content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      summary: Clear the student session
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Ok" } } } }
+  /api/auth/me:
+    get:
+      tags: [auth]
+      summary: Is a student logged in, and their masked profile
+      security: [{ studentSession: [] }]
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Me" } } } }
+  /api/auth/forgot:
+    post:
+      tags: [auth]
+      summary: Send a one-time reset link (same answer whether the email exists or not)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email], properties: { email: { type: string } } } } } }
+      responses:
+        "200": { description: Always { ok, sent }, content: { application/json: { schema: { type: object, properties: { ok: { const: true }, sent: { const: true } } } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/auth/reset:
+    post:
+      tags: [auth]
+      summary: Set a new password with a reset token (logs the student in)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [tokenHash, password], properties: { tokenHash: { type: string }, password: { type: string, minLength: 8 } } } } } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: object, properties: { ok: { const: true }, loggedIn: { type: boolean } } } } } }
+        "400": { description: Invalid/expired/used token, short or same password, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "429": { $ref: "#/components/responses/Error" }
+
+  # ---------------- contest ----------------
+  /api/contest/state:
+    get:
+      tags: [contest]
+      summary: Contest state for the logged-in student; `?full=1` adds the active round's tasks and my last answers
+      security: [{ studentSession: [] }]
+      parameters: [{ name: full, in: query, schema: { type: string, enum: ["1"] } }]
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/StateResponse" } } } }
+        "401": { $ref: "#/components/responses/Error" }
+  /api/contest/answer:
+    post:
+      tags: [contest]
+      summary: Trace answer (last one counts; right/wrong is not revealed)
+      security: [{ studentSession: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [taskId, choice], properties: { taskId: { type: string }, choice: { type: string, maxLength: 4 } } } } } }
+      responses:
+        "200": { description: "{ ok, saved: true }" }
+        "400": { description: Bad body or unknown option }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { description: Task of the other A/B variant }
+        "409": { description: The Trace round is not open }
+        "429": { description: Too fast (250 ms per task) }
+  /api/contest/challenge:
+    post:
+      tags: [contest]
+      summary: Hidden test inputs (≤ 25) and a signed token for one Debug/Build submission
+      security: [{ studentSession: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [taskId], properties: { taskId: { type: string } } } } } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: object, properties: { ok: { const: true }, token: { type: string }, inputs: { type: array, items: { type: array, items: {} } } } } } } }
+        "401": { $ref: "#/components/responses/Error" }
+        "409": { description: Round not open or task has no hidden tests }
+        "429": { description: Too fast (1.5 s per task) }
+  /api/contest/submit:
+    post:
+      tags: [contest]
+      summary: Debug/Build submission — outputs computed in the browser are compared on the server
+      security: [{ studentSession: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [taskId, token, code, outputs], properties: { taskId: { type: string }, token: { type: string }, code: { type: string, maxLength: 20000 }, outputs: { type: array, maxItems: 50, items: { type: string, maxLength: 2000 } } } } } } }
+      responses:
+        "200": { description: "{ ok, correct }" }
+        "400": { description: Bad body or expired/foreign token }
+        "401": { $ref: "#/components/responses/Error" }
+        "409": { description: Round closed (after 5 s grace) or task changed }
+        "422": { description: "Rule violation, nothing stored: { rejected, reason: lines|forbidden|empty|size, changed }" }
+        "429": { description: Too fast }
+  /api/contest/activity:
+    post:
+      tags: [contest]
+      summary: Telemetry (tab switches, paste attempts, typing counts) — sanitised, one row per student and round
+      security: [{ studentSession: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [roundId, data], properties: { roundId: { type: string }, data: { type: object } } } } } }
+      responses:
+        "200": { description: "{ ok, stored: boolean }" }
+        "401": { $ref: "#/components/responses/Error" }
+
+  # ---------------- admin ----------------
+  /api/admin/auth/login:
+    post:
+      tags: [admin]
+      summary: Admin login (users.role = admin), sets debug_admin
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email, password], properties: { email: { type: string }, password: { type: string } } } } } }
+      responses:
+        "200": { description: "{ ok, admin: { email } }" }
+        "401": { description: Wrong email or password }
+        "403": { description: Not an admin account }
+        "429": { description: Too many failed attempts }
+  /api/admin/auth/logout:
+    post:
+      tags: [admin]
+      summary: Clear the admin session
+      responses:
+        "200": { description: OK }
+  /api/admin/auth/me:
+    get:
+      tags: [admin]
+      summary: Current admin
+      security: [{ adminSession: [] }]
+      responses:
+        "200": { description: "{ ok, admin: { email } }" }
+        "401": { $ref: "#/components/responses/Error" }
+  /api/admin/stats:
+    get:
+      tags: [admin]
+      summary: Registered students and counts by university
+      security: [{ adminSession: [] }]
+      responses:
+        "200": { description: "{ ok, total, byUniversity: [[name, count]] }" }
+        "401": { $ref: "#/components/responses/Error" }
+  /api/admin/contests:
+    get:
+      tags: [admin]
+      summary: All contests, newest first
+      security: [{ adminSession: [] }]
+      responses:
+        "200": { description: "{ ok, contests: AdminContest[] }" }
+        "401": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [admin]
+      summary: Create a contest with three rounds (Trace 20, Debug 30, Build 20 min)
+      security: [{ adminSession: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [slug, title, starts_at], properties: { slug: { type: string }, title: { type: string }, starts_at: { type: string, format: date-time } } } } } }
+      responses:
+        "200": { description: "{ ok, contest: AdminContest }" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "409": { description: Slug already exists }
+  /api/admin/contests/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get:
+      tags: [admin]
+      summary: Contest with rounds and full tasks (incl. answer keys)
+      security: [{ adminSession: [] }]
+      responses:
+        "200": { description: "{ ok, contest, rounds: AdminRound[], tasks: AdminTask[] }" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [admin]
+      summary: Update title, starts_at, status, board_locked, board_autolock_min
+      security: [{ adminSession: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { title: { type: string }, starts_at: { type: string }, status: { type: string, enum: [draft, published, running, finished] }, board_locked: { type: boolean }, board_autolock_min: { type: integer, minimum: 0, maximum: 60 } } } } } }
+      responses:
+        "200": { description: "{ ok, contest }" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/admin/contests/{id}/operator:
+    get:
+      tags: [admin]
+      summary: Live numbers for the operator console
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: "{ ok, submissions, people, extensions: [{ student_id, extra_min, name }] }" }
+  /api/admin/contests/{id}/ranking:
+    get:
+      tags: [admin]
+      summary: Full ranking (ignores the board lock)
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: "{ ok, rows: RankRow[] }" }
+  /api/admin/contests/{id}/submissions:
+    post:
+      tags: [admin]
+      summary: Submissions of the given students and tasks (recheck panel), newest first
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { studentIds: { type: array, items: { type: string } }, taskIds: { type: array, items: { type: string } } } } } } }
+      responses:
+        "200": { description: "{ ok, submissions: [{ id, student_id, task_id, code, is_correct, created_at }] }" }
+  /api/admin/contests/{id}/analysis:
+    get:
+      tags: [admin]
+      summary: Everything the AI/copy analysis needs (rounds, tasks, students, submissions, telemetry)
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: "{ ok, title, rounds, tasks, students, subs, activity }" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/admin/rounds/{id}/start:
+    post:
+      tags: [admin]
+      summary: Start a round now (closes the contest's other running round, contest → running)
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: "{ ok, round }" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/admin/rounds/{id}/extend:
+    post:
+      tags: [admin]
+      summary: +N minutes for everyone (running round only)
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [minutes], properties: { minutes: { type: integer, minimum: 1, maximum: 60 } } } } } }
+      responses:
+        "200": { description: "{ ok, round }" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { description: Round is not running }
+  /api/admin/rounds/{id}/close:
+    post:
+      tags: [admin]
+      summary: End a running round now
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: "{ ok, round }" }
+        "409": { description: Round is not running }
+  /api/admin/rounds/{id}/extensions:
+    post:
+      tags: [admin]
+      summary: Personal +5 minutes for one student in this round (max 60)
+      security: [{ adminSession: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [studentId], properties: { studentId: { type: string } } } } } }
+      responses:
+        "200": { description: "{ ok, extra_min }" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/admin/students:
+    get:
+      tags: [admin]
+      summary: Search students by name (≥ 2 characters, ≤ 8 results)
+      security: [{ adminSession: [] }]
+      parameters: [{ name: q, in: query, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: "{ ok, students: [{ id, full_name }] }" }
+  /api/admin/tasks:
+    post:
+      tags: [admin]
+      summary: Create a task
+      security: [{ adminSession: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/TaskInput" } } } }
+      responses:
+        "200": { description: "{ ok, task: AdminTask }" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { description: Round not found }
+        "409": { description: Duplicate (round, idx, variant) }
+  /api/admin/tasks/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    patch:
+      tags: [admin]
+      summary: Update a task
+      security: [{ adminSession: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/TaskInput" } } } }
+      responses:
+        "200": { description: "{ ok, task }" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { description: Duplicate (round, idx, variant) }
+    delete:
+      tags: [admin]
+      summary: Delete a task (its submissions stay for the record)
+      security: [{ adminSession: [] }]
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/admin/images:
+    post:
+      tags: [admin]
+      summary: Upload a Trace image (raw body, image/png|jpeg|gif|webp, ≤ 2 MB)
+      security: [{ adminSession: [] }]
+      requestBody: { required: true, content: { image/*: {} } }
+      responses:
+        "200": { description: "{ ok, url: /api/images/{id} }" }
+        "413": { description: Larger than 2 MB }
+        "415": { description: Not an allowed image type }
