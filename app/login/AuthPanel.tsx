@@ -22,7 +22,6 @@ export default function AuthPanel({ initialTab, emailsEnabled, notice }: { initi
   const [msg, setMsg] = useState<Notice>(notice);
   const [badField, setBadField] = useState("");
   const [shaking, setShaking] = useState(false); // қате болса форма «шайқалады»
-  const [unconfirmed, setUnconfirmed] = useState(false);
   const [sentTo, setSentTo] = useState(""); // растау не қалпына келтіру хаты жіберілген email
 
   const [f, setF] = useState({ lastName: "", firstName: "", university: "", course: "", phone: "", email: "", password: "" });
@@ -48,7 +47,6 @@ export default function AuthPanel({ initialTab, emailsEnabled, notice }: { initi
     setTab(t);
     setMsg(null);
     setBadField("");
-    setUnconfirmed(false);
     setSentTo("");
     // URL әдейі өзгертілмейді: Next.js history.replaceState-ті ұстап, бетті қайта құрады
     // (барлық «кіру» анимациясы қайталанып, экран бір сәт бос қалады).
@@ -65,7 +63,6 @@ export default function AuthPanel({ initialTab, emailsEnabled, notice }: { initi
     if (busy) return;
     setBusy(true);
     setMsg(null);
-    setUnconfirmed(false);
     try {
       if (tab === "login") {
         const { status, data } = await api.auth.login(f.email, f.password);
@@ -75,7 +72,6 @@ export default function AuthPanel({ initialTab, emailsEnabled, notice }: { initi
           router.refresh();
           return;
         }
-        if (data.unconfirmed) setUnconfirmed(true);
         error(data.message || "Кіру мүмкін болмады. Қайталап көріңіз.");
       } else if (tab === "register") {
         const { status, data } = await api.auth.register(f);
@@ -97,18 +93,6 @@ export default function AuthPanel({ initialTab, emailsEnabled, notice }: { initi
       }
     } catch {
       error("Байланыс жоқ. Интернетті тексеріп, қайталаңыз.");
-    }
-    setBusy(false);
-  }
-
-  async function resend() {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const { status, data } = await api.auth.resend(sentTo || f.email);
-      setMsg(status === 200 ? { text: "Хат қайта жіберілді. Поштаңызды (спам қалтасын да) тексеріңіз." } : { text: data.message || "Хат жіберілмеді.", err: true });
-    } catch {
-      setMsg({ text: "Байланыс жоқ. Интернетті тексеріп, қайталаңыз.", err: true });
     }
     setBusy(false);
   }
@@ -155,11 +139,6 @@ export default function AuthPanel({ initialTab, emailsEnabled, notice }: { initi
                   : "Егер бұл email тіркелген болса, хатта жаңа құпия сөз қоятын сілтеме бар. Хат келмесе, спам қалтасын тексеріңіз."}
               </p>
               <div className="actions" style={{ marginTop: 18 }}>
-                {tab === "register" && (
-                  <button type="button" className={"btn btn-ghost" + (busy ? " is-busy" : "")} onClick={resend} disabled={busy}>
-                    {busy ? "жіберілуде…" : "Хатты қайта жіберу"}
-                  </button>
-                )}
                 <button type="button" className="btn btn-ghost" onClick={() => go("login")}>Кіру бетіне</button>
               </div>
             </div>
@@ -232,12 +211,6 @@ export default function AuthPanel({ initialTab, emailsEnabled, notice }: { initi
           )}
 
           <p className={"msg" + (msg?.err ? " err" : "")} role="status" aria-live="polite">{msg?.text ?? ""}</p>
-
-          {unconfirmed && !sentTo && (
-            <button type="button" className={"btn btn-ghost btn-sm" + (busy ? " is-busy" : "")} onClick={resend} disabled={busy} style={{ marginTop: 6 }}>
-              Растау хатын қайта жіберу
-            </button>
-          )}
 
           {!sentTo && tab === "login" && (
             <p className="tiny auth-foot">

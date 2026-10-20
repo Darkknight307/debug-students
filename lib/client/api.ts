@@ -17,7 +17,6 @@ export interface Api {
     logout(): Promise<void>;
     me(): Promise<Me>;
     forgot(email: string): Promise<ApiResult<AuthReply>>;
-    resend(email: string): Promise<ApiResult<AuthReply>>;
     reset(tokenHash: string, password: string): Promise<ApiResult<AuthReply>>;
   };
   contest: {

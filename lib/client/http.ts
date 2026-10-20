@@ -48,7 +48,6 @@ export const httpApi: Api = {
       return status === 200 && data.loggedIn ? (data as never) : { loggedIn: false };
     },
     forgot: (email) => call("POST", "/api/auth/forgot", { email }),
-    resend: (email) => call("POST", "/api/auth/resend", { email }),
     reset: (tokenHash, password) => call("POST", "/api/auth/reset", { tokenHash, password }),
   },
   contest: {

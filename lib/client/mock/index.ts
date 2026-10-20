@@ -161,10 +161,6 @@ export const mockApi: Api = {
       }
       return ok({ sent: true });
     },
-    async resend() {
-      await delay();
-      return ok({ sent: true });
-    },
     async reset(tokenHash, password) {
       await delay();
       const bad = validatePassword(password);

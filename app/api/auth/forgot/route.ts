@@ -1,34 +1,37 @@
+import crypto from "node:crypto";
 import type { NextRequest } from "next/server";
-import { clientIp, describeAuthError, isAuthConfigured, siteUrl, supabaseAuth } from "../../../../lib/supabaseAuth";
+import { getStore } from "../../../../lib/server/store";
+import { HttpError, body, json, route } from "../../../../lib/server/route";
+import { sendMail } from "../../../../lib/server/mailer";
+import { sha256 } from "../../../../lib/server/password";
 import { hit } from "../../../../lib/rateLimit";
 import { isValidEmail, normalizeEmail } from "../../../../lib/registration";
-import { fail, ok, readJson } from "../../../../lib/contest/http";
+import { clientIp, siteUrl } from "../../../../lib/server/ip";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const WINDOW_MS = 10 * 60_000;
+const RESET_TTL_MS = 60 * 60_000;
 
 /**
- * «Құпия сөзді ұмыттым»: Supabase қалпына келтіру хатын жібереді (сілтеме → /auth/reset).
+ * «Құпия сөзді ұмыттым»: бір реттік токен (тек SHA-256 хэші сақталады, 1 сағат), сілтеме хатпен.
  * Жауап әрқашан бірдей — email бар-жоғы ашылмайды.
  */
-export async function POST(req: NextRequest) {
-  if (!isAuthConfigured()) return fail(500, "Сервер әлі бапталмаған. Ұйымдастырушыға хабарласыңыз.");
-  const body = await readJson(req);
-  if (!body) return fail(415, "JSON күтілді");
-  const email = normalizeEmail(body.email);
-  if (!isValidEmail(email)) return fail(400, "Email дұрыс емес");
-
+export const POST = route(async (req: NextRequest) => {
+  const email = normalizeEmail((await body(req)).email);
+  if (!isValidEmail(email)) throw new HttpError(400, "Email дұрыс емес");
   const ip = clientIp(req);
   if (hit("forgot-ip:" + ip, 20, WINDOW_MS) || hit("forgot:" + email, 3, WINDOW_MS)) {
-    return fail(429, "Хат жақында жіберілген. Бірнеше минуттан кейін қайталаңыз.");
+    throw new HttpError(429, "Хат жақында жіберілген. Бірнеше минуттан кейін қайталаңыз.");
   }
-  const { error } = await supabaseAuth(ip).auth.resetPasswordForEmail(email, { redirectTo: siteUrl(req) + "/auth/reset" });
-  if (error) {
-    const f = describeAuthError(error);
-    if (f.status === 429 || f.status === 503) return fail(f.status, f.message);
-    console.warn("[auth] recover:", f.code, error.status);
+  const store = getStore();
+  const user = await store.userByEmail(email);
+  if (user && user.role === "student") {
+    const token = crypto.randomBytes(32).toString("base64url");
+    await store.addResetToken({ token_hash: sha256(token), user_id: user.id, expires_at: new Date(Date.now() + RESET_TTL_MS).toISOString() });
+    const link = `${siteUrl(req)}/auth/reset?token_hash=${token}&type=recovery`;
+    await sendMail({ to: email, subject: "DEBUG · Құпия сөзді қалпына келтіру", text: `Жаңа құпия сөз қою үшін: ${link}`, link });
   }
-  return ok({ sent: true });
-}
+  return json({ sent: true });
+});
