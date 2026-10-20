@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "tsx --test \"tests/**/*.test.mts\"",
-    "test:e2e": "node tests/contest/e2e.mjs && bash tests/auth/e2e.sh"
+    "test:e2e": "node tests/contest/e2e.mjs && bash tests/auth/e2e.sh",
+    "dev:mock": "NEXT_PUBLIC_API_MODE=mock NEXT_DIST_DIR=node_modules/.cache/next-mockui next dev -p 3000"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",

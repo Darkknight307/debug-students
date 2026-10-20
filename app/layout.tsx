@@ -17,7 +17,14 @@ export default function RootLayout({
       <head>
         <link rel="preload" href="/fonts/jetbrains-mono-2.304-kz.woff2" as="font" type="font/woff2" crossOrigin="" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        {process.env.NEXT_PUBLIC_API_MODE === "mock" && (
+          <div aria-label="mock режимі" style={{ position: "fixed", right: 12, bottom: 12, zIndex: 50, padding: "4px 10px", borderRadius: 999, border: "1px solid var(--warn)", color: "var(--warn)", fontSize: 11, letterSpacing: "0.14em", background: "rgba(7,11,16,.85)" }}>
+            MOCK
+          </div>
+        )}
+      </body>
     </html>
   );
 }
