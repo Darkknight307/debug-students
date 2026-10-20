@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  supabase, DEFAULT_POINTS, type RoundKind, type Task, type TestCase,
-} from "../../lib/supabase";
+import { api, DEFAULT_POINTS, type Kind as RoundKind, type AdminTask as Task, type TestCase } from "../../lib/client";
 import { changedLines } from "../../lib/contest/rules";
 import { pyRunner } from "../../lib/contest/pyRunner";
 
@@ -36,7 +34,7 @@ export function emptyDraft(kind: RoundKind, idx: number): Draft {
     idx, title: "", statement: "", points: DEFAULT_POINTS[kind],
     options: null, correct: null, starter_code: null, solution_code: null,
     variant: null, image_url: null, entry: null, max_changed_lines: null,
-    forbidden: [], tests_public: [], tests_hidden: [],
+    forbidden: [], ai_refs: [], tests_public: [], tests_hidden: [],
   };
   if (kind === "mcq") {
     d.options = [
@@ -93,12 +91,14 @@ export default function TaskEditor({
     if (file.size > 2 * 1024 * 1024) return setMsg("! сурет 2 МБ-тан аспауы керек");
     setBusy("upload");
     setMsg("");
-    const ext = (file.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
-    const name = `${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from("task-images").upload(name, file, { contentType: file.type, upsert: false });
-    setBusy("");
-    if (error) return setMsg("! сурет жүктелмеді: " + error.message);
-    set("image_url", supabase.storage.from("task-images").getPublicUrl(name).data.publicUrl);
+    try {
+      const { url } = await api.admin.uploadImage(file);
+      set("image_url", url);
+    } catch (e) {
+      setMsg("! сурет жүктелмеді: " + (e as Error).message);
+    } finally {
+      setBusy("");
+    }
   }
 
   /** Эталон шешімді браузердегі Python-мен орындап, күтілетін шығыстарды толтырады. */
@@ -157,22 +157,18 @@ export default function TaskEditor({
       const tests = await compute(); // сақтар алдында шығыстар әрдайым қайта есептеледі
       if (!tests) return;
       Object.assign(payload, { entry, forbidden, tests_public: tests.pub, tests_hidden: tests.hid, max_changed_lines: kind === "debug" ? d.max_changed_lines ?? 1 : null });
-      // ai_refs бағаны 007_activity.sql орындалғанда ғана бар: бос болса және бұрын болмаса — жібермейміз
-      const refs = aiText.split(/^\s*={5,}\s*$/m).map((x) => x.trim()).filter(Boolean);
-      if (refs.length || (task && "ai_refs" in task)) payload.ai_refs = refs;
-      else delete payload.ai_refs;
+      payload.ai_refs = aiText.split(/^\s*={5,}\s*$/m).map((x) => x.trim()).filter(Boolean);
     }
 
     setBusy("save");
-    const q = task
-      ? supabase.from("tasks").update(payload).eq("id", task.id)
-      : supabase.from("tasks").insert(payload);
-    const { error } = await q;
-    setBusy("");
-    if (error) {
-      if (/ai_refs/.test(error.message)) return setMsg("! ЖИ үлгі жауабын сақтау үшін алдымен supabase/007_activity.sql файлын орындаңыз");
-      return setMsg(error.code === "23505" ? "! бұл реттік нөмір (және нұсқа) бұл кезеңде бұрыннан бар" : "! " + error.message);
+    try {
+      if (task) await api.admin.updateTask(task.id, payload as Partial<Task>);
+      else await api.admin.createTask(payload as Omit<Task, "id">);
+    } catch (e) {
+      setBusy("");
+      return setMsg("! " + (e as Error).message);
     }
+    setBusy("");
     onDone();
   }
 
