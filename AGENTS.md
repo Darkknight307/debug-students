@@ -23,16 +23,16 @@ Stack: one **Next.js 15** app (App Router, React 19, TypeScript). The frontend t
 | One test file | `npx tsx --test tests/store/contract.test.ts` |
 | E2E suites (real Next.js server, memory and SQLite) | `npm run test:e2e` |
 | Type check + production build | `npm run build` |
-| Apply migrations / create a new one | `npm run db:deploy` / `npm run db:migrate -- --name <name>` |
+| Apply migrations / create a new one | `npm run db:deploy` / `npm run db:migrate -- --name <name>` (schema: `prisma/schema.prisma`) |
 | Seed admin + first contest | `npm run db:seed` (reads `ADMIN_EMAIL`, `ADMIN_PASSWORD`) |
 
-Some commands arrive with their issues (mock dev #20, DB #38–#41); keep this table in sync with `package.json`.
+Keep this table in sync with `package.json`. Local config lives in `.env` (copy `.env.example`).
 
 ## Rules
 
 - Work on **one GitHub issue at a time**. Read its acceptance criteria (and the QA test cases) before starting and before handing over.
 - Every commit message references the issue: `Add PrismaStore (#39)`.
-- **Never add a dependency without asking.** Current runtime deps: next, react, react-dom, @prisma/client, CodeMirror packages.
+- **Never add a dependency without asking.** Runtime deps: next, react, react-dom, @prisma/client, CodeMirror packages; dev: prisma, tsx, typescript.
 - Every change ships with tests; `npm test` and `npm run test:e2e` must pass, `npm run build` must succeed.
 - **Relative imports only** (no `@/` alias).
 - Pages and components never call `fetch` or a database directly — only `lib/client` (`api`).

@@ -1,25 +1,44 @@
 # DEBUG · Студенттер
 
-Онлайн кодинг жарысы студенттерге: үш кезең — **Trace** (кодты оқу), **Debug** (қатені түзет), **Build** (өзің жаз).
-Python браузерде (Pyodide) орындалады, нәтиже тікелей эфир лидербордында көрінеді.
+Online coding contest for students: three timed rounds — **Trace** (read code), **Debug** (fix one line),
+**Build** (write a function). Python runs in the browser (Pyodide), hidden tests are checked on the server,
+live leaderboard, operator/admin panel, AI/copy analysis (never a verdict). UI in Kazakh.
 
-> Бұл — бастапқы нұсқа (DEBUG мектеп жарысынан алынған прототип, Supabase-ке негізделген).
-> Әрі қарайғы жұмыс GitHub issues арқылы итерациялармен жүреді.
+**Stack:** Next.js 15 (App Router, React 19, TypeScript) · **Prisma ORM + SQLite** · `openapi.yml` contract.
 
-## UI on mocks (no backend)
+## Run
 
 ```bash
 npm install
-npm run dev:mock   # http://localhost:3000 — the MOCK badge shows the mode
+cp .env.example .env          # set SESSION_SECRET (≥ 32 chars), ADMIN_EMAIL, ADMIN_PASSWORD
+npm run db:seed               # admin + «DEBUG · Студенттер» contest with 16 tasks
+npm run dev                   # applies migrations, http://localhost:3000 (admin: /admin)
 ```
 
-Demo accounts (stored only in the browser's localStorage):
+UI only, no backend: `npm run dev:mock` (MOCK badge; demo accounts `demo@mock.test` / `demo-pass-1`,
+admin `admin@mock.test` / `admin-pass-1`, stored only in the browser).
 
-| Role | Email | Password |
-|---|---|---|
-| Student | `demo@mock.test` | `demo-pass-1` |
-| Admin (`/admin`) | `admin@mock.test` | `admin-pass-1` |
+## Test
 
-Works on mocks: registration, login, forgot/reset (the link is printed in the browser console), `/me`, the contest
-page (Trace/Debug/Build with Pyodide), the whole admin panel. The static landing page and leaderboard need the
-real backend.
+```bash
+npm test           # 70 unit + store contract (MemoryStore and PrismaStore/SQLite) + openapi contract tests
+npm run test:e2e   # contest + auth + admin e2e on the real server, on DB_DRIVER=memory and on SQLite
+npm run build
+```
+
+## Architecture
+
+```
+pages (app/) → lib/client api ─┬─ http.ts → /api/* route handlers → lib/server services → Store
+                               └─ mock/   (mockService)                       ├─ MemoryStore
+                                                                              └─ PrismaStore → SQLite
+```
+
+## AI-native workflow
+
+1. `chat-brainstorm.md` — the brainstorm chat before building.
+2. `_docs/plan.md` (spec), `_docs/decisions.md` (stack + architecture), `_docs/design.md` (design references).
+3. `_docs/tasks.md` → GitHub issues: `mvp`, `post-mvp`, `user-test-bug`, iteration labels `iter-0` … `iter-5`.
+4. Roles: `_docs/team/pm.md` (grooming), `qa.md` (test cases), `software-engineer.md`, `qa-engineer.md` (verifies, closes).
+5. Iterations: frontend + mockService → `openapi.yml` → in-memory backend → SQLite (Prisma) → connect.
+6. Bugs found by running the app are `user-test-bug` issues (Goal + Description → PM → QA test cases → fix → QA closes).

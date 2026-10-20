@@ -5,9 +5,9 @@
 | Level | Where | Runs with | What it proves |
 |---|---|---|---|
 | Unit | `tests/**/unit.test.mts` | `npm test` | pure logic: validation, rules, ranking, sessions, password hashing, analysis |
-| Store contract | `tests/store/contract.test.mts` | `npm test` | `MemoryStore` and `PrismaStore` behave the same (every case runs on both) |
+| Store contract | `tests/store/contract.test.mts` | `npm test` | `MemoryStore` and `PrismaStore` behave the same (every case runs on both; Prisma on a temporary SQLite file) |
 | Contract | `tests/contract/openapi.test.mts` | `npm test` | `openapi.yml` and the route handlers list the same paths and methods |
-| E2E | `tests/e2e/*.mjs` | `npm run test:e2e` | the real Next.js server end to end, on `DB_DRIVER=memory` and on a temporary SQLite file |
+| E2E | `tests/contest/e2e.mjs`, `tests/auth/e2e.sh`, `tests/admin/e2e.mjs` (runner `tests/e2e.sh`) | `npm run test:e2e` | the real Next.js server end to end, on `DB_DRIVER=memory` and on a temporary SQLite file |
 | Manual | browser (desktop + 375 px) | a person / QA | what tests miss: layout, animations, copy, flows — bugs become `user-test-bug` issues |
 
 `npm test` runs every `tests/**/*.test.mts` through `tsx` with `node:test`.
