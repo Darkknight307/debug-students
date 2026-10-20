@@ -1,10 +1,11 @@
-// Кезеңдердің толық ағыны: Next.js + мок Supabase Auth/PostgREST.
+// Кезеңдердің толық ағыны: нақты Next.js сервері + Store (DB_DRIVER=memory не sqlite), деректер тест ілмектерімен.
 // Іске қосу: node tests/contest/e2e.mjs   (Pyodide бөлігі браузерде бөлек тексеріледі)
 import { spawn } from "node:child_process";
 
 // Порттар dev-mock.sh-тағыдан бөлек (4466/3101), екеуі қатар жүре алады
-const MOCK = "http://127.0.0.1:4477";
-const APP = "http://127.0.0.1:3102";
+const DRIVER = process.env.E2E_DRIVER || "memory";
+const APP = `http://127.0.0.1:${DRIVER === "memory" ? 3102 : 3112}`;
+const DB_ENV = DRIVER === "memory" ? { DB_DRIVER: "memory" } : { DB_DRIVER: "sqlite", DATABASE_URL: process.env.E2E_DATABASE_URL };
 let pass = 0, fail = 0;
 const ok = (m) => { pass++; console.log("  ✓ " + m); };
 const bad = (m, d) => { fail++; console.log("  ✗ " + m + " — " + d); };
@@ -13,16 +14,16 @@ const truthy = (m, v, d = "") => (v ? ok(m) : bad(m, d || "шарт орында
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const iso = (ms) => new Date(Date.now() + ms).toISOString();
 
-const mock = spawn("node", ["tests/contest/mock-db.mjs"], { stdio: "ignore", env: { ...process.env, MOCK_PORT: "4477" } });
-const app = spawn("npx", ["next", "dev", "-p", "3102"], {
+const app = spawn("npx", ["next", "dev", "-p", APP.split(":").pop()], {
   stdio: "ignore",
-  env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: MOCK, NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon", SUPABASE_SERVICE_ROLE_KEY: "svc", SUPABASE_SECRET_KEY: "", SESSION_SECRET: "e2e-secret-e2e-secret-e2e-secret-000", NEXT_DIST_DIR: "node_modules/.cache/next-e2e" },
+  env: { ...process.env, ...DB_ENV, E2E_TEST_HOOKS: "1", SESSION_SECRET: "e2e-secret-e2e-secret-e2e-secret-000", NEXT_DIST_DIR: "node_modules/.cache/next-e2e-" + DRIVER },
   detached: true,
 });
-const stop = () => { try { process.kill(-app.pid); } catch {} mock.kill(); };
+const stop = () => { try { process.kill(-app.pid); } catch {} };
 process.on("exit", stop);
 
-const mockPost = (p, b) => fetch(MOCK + p, { method: "POST", body: JSON.stringify(b) }).then((r) => r.json());
+const mockPost = (p, b) => fetch(APP + "/api/test-hooks/" + p.replace("/__", ""), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }).then((r) => r.json());
+const dump = () => fetch(APP + "/api/test-hooks/dump").then((x) => x.json());
 async function call(cookie, method, path, body) {
   const r = await fetch(APP + path, {
     method, headers: { "content-type": "application/json", cookie }, body: body ? JSON.stringify(body) : undefined,
@@ -47,16 +48,21 @@ const STARTER = "def f(a):\n    s = 0\n    for x in a:\n        s += x\n    retu
 const D11_HIDDEN = [{ args: [[1]], expected: "1" }, { args: [[5, 5]], expected: "10" }, { args: [[]], expected: "0" }];
 const B15_HIDDEN = [{ args: [[1, 1, 2]], expected: "2" }, { args: [["a", "b", "a"]], expected: "2" }, { args: [[]], expected: "0" }];
 const round = (id, idx, kind, extra = {}) => ({ id, contest_id: C, idx, kind, title: kind, duration_min: 20, status: "pending", started_at: null, ends_at: null, ...extra });
-const task = (id, round_id, idx, extra) => ({ id, round_id, idx, title: `t${idx}`, statement: "шарт", points: 1, options: null, correct: null, starter_code: null, solution_code: "SECRET_SOLUTION", entry: null, max_changed_lines: null, forbidden: [], variant: null, image_url: null, tests_public: [], tests_hidden: [], ...extra });
+const task = (id, round_id, idx, extra) => ({ id, round_id, idx, title: `t${idx}`, statement: "шарт", points: 1, options: null, correct: null, starter_code: null, solution_code: "SECRET_SOLUTION", entry: null, max_changed_lines: null, forbidden: [], ai_refs: [], variant: null, image_url: null, tests_public: [], tests_hidden: [], ...extra });
 
 async function main() {
-  console.log("Next.js іске қосылуда…");
+  console.log(`Next.js іске қосылуда… (DB_DRIVER=${DRIVER})`);
   for (let i = 0; i < 120; i++) { try { if ((await fetch(APP + "/login")).status === 200) break; } catch {} await sleep(1000); }
 
+  await mockPost("/__reset", {});
+  await mockPost("/__seed", { users: [
+    { id: "b1000000-0000-4000-8000-000000000001", email: "s1@mock.test", password: "fixture-pass", last_name: "Серіков", first_name: "Айдос", full_name: "Серіков Айдос", university: "Мок университеті", course: "2 курс", phone: "+77010000001" },
+    { id: "b2000000-0000-4000-8000-000000000002", email: "s2@mock.test", password: "fixture-pass", last_name: "Қайрат", first_name: "Бота", full_name: "Қайрат Бота", university: "Мок колледжі", course: "1 курс", phone: null },
+  ] });
   const s1 = await login("s1@mock.test"), s2 = await login("s2@mock.test");
   expect("екі студент кірді", [s1.status, s2.status], [200, 200]);
 
-  console.log("0. Supabase-ті ояту жолы");
+  console.log("0. Keepalive жолы");
   const ka = await call("", "GET", "/api/cron/keepalive");
   expect("keepalive → ok", [ka.status, ka.data?.ok], [200, true]);
   truthy("keepalive дерек қайтармайды", !/full_name|email|title/.test(ka.text), ka.text);
@@ -88,7 +94,8 @@ async function main() {
   expect("landing: тіркелген студенттер саны", land.data?.students?.count, 2);
   truthy("landing: тек «Тегі Аты»", land.data?.students?.names?.includes("Серіков Айдос") && land.data?.students?.names?.includes("Қайрат Бота"), land.text);
   truthy("landing: email, телефон, оқу орны, id шықпайды", !/\+7701|@mock|Мок унив|Мок колл|phone|email|university|auth_user|b1000000/.test(land.text), land.text);
-  expect("me: кірген студент", (await call(s1.cookie, "GET", "/api/auth/me")).data, { loggedIn: true, name: "Серіков Айдос" });
+  const meRes = (await call(s1.cookie, "GET", "/api/auth/me")).data;
+  expect("me: кірген студент және жасырылған профиль", [meRes?.loggedIn, meRes?.name, meRes?.profile?.emailMasked, meRes?.profile?.phoneMasked], [true, "Серіков Айдос", "s1•••@mock.test", "••• ••• 00 01"]);
   expect("me: кірмеген адам", (await call("", "GET", "/api/auth/me")).data, { loggedIn: false });
 
   console.log("2. Жарыс жарияланған, кезең басталмаған");
@@ -139,7 +146,7 @@ async function main() {
 
   await mockPost("/__patch", { table: "rounds", id: R1, set: { status: "closed", ends_at: iso(-10_000) } });
   await sleep(8200);
-  let rank = await fetch(MOCK + "/__rank?c=" + C).then((x) => x.json());
+  let rank = (await call("", "GET", "/api/board")).data?.rows ?? [];
   expect("Trace жабылған соң: s1 — 2 ұпай (соңғы жауап есептелді)", rank[0]?.score, 2);
   st = await call(s1.cookie, "GET", "/api/contest/state");
   expect("оқушы өз орнын көреді", st.data?.me, { rank: 1, score: 2, total: 2 });
@@ -149,7 +156,7 @@ async function main() {
   expect("кірмеген адамнан қабылданбайды → 401", (await call("", "POST", "/api/contest/activity", { roundId: R1, data: act })).status, 401);
   r = await call(s1.cookie, "POST", "/api/contest/activity", { roundId: R1, data: { ...act, evil: "<script>", hidden_ms: -5, tasks: { ...act.tasks, "жаман-кілт": { keys: 1 }, [T1A]: { keys: 1e12, dels: "көп" } } } });
   expect("ашық кезеңнің дерегі сақталады", r.data, { ok: true, stored: true });
-  let saved = (await fetch(MOCK + "/__db").then((x) => x.json())).activity;
+  let saved = (await dump()).activity;
   expect("бір оқушыға бір кезеңге бір жол", saved.length, 1);
   truthy("бөтен өрістер мен жарамсыз кілттер алынады", !("evil" in saved[0].data) && !("жаман-кілт" in saved[0].data.tasks), JSON.stringify(saved[0].data));
   expect("мәндер шектеледі", [saved[0].data.hidden_ms, saved[0].data.tasks[T1A].keys, saved[0].data.tasks[T1A].dels, saved[0].data.tasks[T2].blocked], [0, 1000000, 0, 1]);
@@ -157,7 +164,7 @@ async function main() {
   expect("басталмаған кезеңнің дерегі сақталмайды", (await call(s2.cookie, "POST", "/api/contest/activity", { roundId: R3, data: act })).data, { ok: true, stored: false });
   await sleep(4200);
   await call(s1.cookie, "POST", "/api/contest/activity", { roundId: R1, data: act });
-  saved = (await fetch(MOCK + "/__db").then((x) => x.json())).activity;
+  saved = (await dump()).activity;
   expect("қайта жіберілсе — сол жол жаңарады", [saved.length, saved[0].data.hidden_count, saved[0].data.hidden_ms], [1, 2, 9000]);
   st = await call(s1.cookie, "GET", "/api/contest/state?full=1");
   truthy("бақылау дерегі мен ЖИ үлгілері оқушыға қайтарылмайды", !/hidden_count|ai_refs/.test(st.text));
@@ -185,7 +192,7 @@ async function main() {
   ch = await call(s1.cookie, "POST", "/api/contest/challenge", { taskId: D11 });
   r = await call(s1.cookie, "POST", "/api/contest/submit", { taskId: D11, token: ch.data.token, code: STARTER.replace("s = 0", "s = 1").replace("return s + 1", "return s"), outputs: ch.data.inputs.map(answerFor(D11_HIDDEN)) });
   expect("2 жол өзгерсе → 422, себебі айтылады", [r.status, r.data?.reason], [422, "lines"]);
-  truthy("ереже бұзылған жіберілім сақталмайды", (await fetch(MOCK + "/__db").then((x) => x.json())).submissions.filter((s) => s.task_id === D11).length === 1);
+  truthy("ереже бұзылған жіберілім сақталмайды", (await dump()).submissions.filter((s) => s.task_id === D11).length === 1);
 
   await sleep(1600);
   ch = await call(s2.cookie, "POST", "/api/contest/challenge", { taskId: D11 });
@@ -204,7 +211,7 @@ async function main() {
   await sleep(2200);
   r = await call(s2.cookie, "POST", "/api/contest/submit", { taskId: D11, token: chLate.data.token, code: FIXED, outputs: chLate.data.inputs.map(answerFor(D11_HIDDEN)) });
   expect("уақыт + 5 с грейс өткен соң → 409", r.status, 409);
-  await mockPost("/__seed", { round_extensions: [{ round_id: R2, student_id: (await fetch(MOCK + "/__db").then((x) => x.json())).students.find((x) => x.email === "s2@mock.test").id, extra_min: 5 }] });
+  await mockPost("/__seed", { extensions: [{ round_id: R2, student_id: (await dump()).users.find((x) => x.email === "s2@mock.test").id, extra_min: 5 }] });
   await sleep(5200);
   st = await call(s2.cookie, "GET", "/api/contest/state");
   expect("+5 мин алған оқушыда кезең ашық", st.data?.active?.kind, "debug");
@@ -215,7 +222,7 @@ async function main() {
   console.log("6. Build және тыйым салынған конструкция");
   await mockPost("/__patch", { table: "rounds", id: R2, set: { status: "closed" } });
   await mockPost("/__patch", { table: "rounds", id: R3, set: { status: "running", started_at: iso(0), ends_at: iso(20 * 60_000) } });
-  await mockPost("/__seed", { round_extensions: [] });
+  await mockPost("/__seed", { extensions: [] });
   await sleep(5200);
   st = await call(s1.cookie, "GET", "/api/contest/state?full=1");
   expect("белсенді — code", st.data?.active?.kind, "code");
