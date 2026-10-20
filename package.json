@@ -6,7 +6,9 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "tsx --test \"tests/**/*.test.mts\"",
+    "test:e2e": "node tests/contest/e2e.mjs && bash tests/auth/e2e.sh"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",
@@ -24,6 +26,7 @@
     "@types/node": "^26.5.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3"
   }
 }
