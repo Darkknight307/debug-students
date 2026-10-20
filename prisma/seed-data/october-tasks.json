@@ -1,0 +1,1258 @@
+[
+ {
+  "kind": "mcq",
+  "idx": 1,
+  "title": "Кодтың қызметі",
+  "statement": "Төмендегі кодтың қызметі:",
+  "points": 1,
+  "options": [
+   {
+    "key": "a",
+    "text": "енгізілген санның барлық бөлгіштерінің қосындысы мен көбейтіндісін табады"
+   },
+   {
+    "key": "b",
+    "text": "берілген аралықтағы ең кіші және ең үлкен жай сандарды анықтайды"
+   },
+   {
+    "key": "c",
+    "text": "берілген аралықтағы ең кіші және үлкен сандарды анықтайды"
+   },
+   {
+    "key": "d",
+    "text": "енгізілген санның 1 мен өзінен басқа ең үлкен және ең кіші бөлгіштерін табады"
+   }
+  ],
+  "correct": "d",
+  "starter_code": null,
+  "solution_code": null,
+  "variant": null,
+  "image_url": "/t/b096819e46cc4b19.png",
+  "entry": null,
+  "max_changed_lines": null,
+  "forbidden": [],
+  "ai_refs": [],
+  "tests_public": [],
+  "tests_hidden": []
+ },
+ {
+  "kind": "mcq",
+  "idx": 2,
+  "title": "Цифрлармен жұмыс",
+  "statement": "n = 7649 мәнін бергендегі код нәтижесі:",
+  "points": 1,
+  "options": [
+   {
+    "key": "a",
+    "text": "san: 9 4 6 7"
+   },
+   {
+    "key": "b",
+    "text": "san: 946"
+   },
+   {
+    "key": "c",
+    "text": "san: 9467"
+   },
+   {
+    "key": "d",
+    "text": "san: 26"
+   }
+  ],
+  "correct": "c",
+  "starter_code": null,
+  "solution_code": null,
+  "variant": null,
+  "image_url": "/t/6ea16a28f6f090b8.png",
+  "entry": null,
+  "max_changed_lines": null,
+  "forbidden": [],
+  "ai_refs": [],
+  "tests_public": [],
+  "tests_hidden": []
+ },
+ {
+  "kind": "mcq",
+  "idx": 3,
+  "title": "Жылдар саны",
+  "statement": "Пайдаланушы x = 100, p = 20, y = 144 мәндерін енгізгендегі нәтиже:",
+  "points": 1,
+  "options": [
+   {
+    "key": "a",
+    "text": "sizge kerektisi 3 jyl"
+   },
+   {
+    "key": "b",
+    "text": "sizge kerektisi 2 jyl"
+   },
+   {
+    "key": "c",
+    "text": "sizge kerektisi 144 jyl"
+   },
+   {
+    "key": "d",
+    "text": "sizge kerektisi 1 jyl"
+   }
+  ],
+  "correct": "b",
+  "starter_code": null,
+  "solution_code": null,
+  "variant": null,
+  "image_url": "/t/2771bd0b2c00483f.png",
+  "entry": null,
+  "max_changed_lines": null,
+  "forbidden": [],
+  "ai_refs": [],
+  "tests_public": [],
+  "tests_hidden": []
+ },
+ {
+  "kind": "mcq",
+  "idx": 4,
+  "title": "Тізімді өзгерту",
+  "statement": "5 10 1 2 3 10 -10 мәндерін бергендегі код нәтижесі:",
+  "points": 1,
+  "options": [
+   {
+    "key": "a",
+    "text": "A= [1, 2, 3, 10, -10]"
+   },
+   {
+    "key": "b",
+    "text": "A= [10, -10, 1, 2, 3]"
+   },
+   {
+    "key": "c",
+    "text": "A= [-10, 1, 2, 3, 10]"
+   },
+   {
+    "key": "d",
+    "text": "A= [2, 3, 10, -10, 1]"
+   }
+  ],
+  "correct": "d",
+  "starter_code": null,
+  "solution_code": null,
+  "variant": null,
+  "image_url": "/t/e6e93f7ba89e78df.png",
+  "entry": null,
+  "max_changed_lines": null,
+  "forbidden": [],
+  "ai_refs": [],
+  "tests_public": [],
+  "tests_hidden": []
+ },
+ {
+  "kind": "mcq",
+  "idx": 5,
+  "title": "Кодтың мақсаты",
+  "statement": "Кодтың мақсаты:",
+  "points": 1,
+  "options": [
+   {
+    "key": "a",
+    "text": "N санының жай сан екенін тексеру"
+   },
+   {
+    "key": "b",
+    "text": "N санының барлық бөлгіштерін тауып, экранға шығару"
+   },
+   {
+    "key": "c",
+    "text": "N санын 2-ге бөліп, жұп немесе тақ екенін анықтау"
+   },
+   {
+    "key": "d",
+    "text": "N санына дейінгі барлық жай сандарды табу"
+   }
+  ],
+  "correct": "a",
+  "starter_code": null,
+  "solution_code": null,
+  "variant": null,
+  "image_url": "/t/65f689e913647200.png",
+  "entry": null,
+  "max_changed_lines": null,
+  "forbidden": [],
+  "ai_refs": [],
+  "tests_public": [],
+  "tests_hidden": []
+ },
+ {
+  "kind": "mcq",
+  "idx": 6,
+  "title": "Көріну аймағы",
+  "statement": "Соңғы жолдың нәтижесі:",
+  "points": 1,
+  "options": [
+   {
+    "key": "a",
+    "text": "??? y = 12"
+   },
+   {
+    "key": "b",
+    "text": "??? y = 9"
+   },
+   {
+    "key": "c",
+    "text": "??? y = 5"
+   },
+   {
+    "key": "d",
+    "text": "Қате шығады, y функция ішінде өзгертілді"
+   }
+  ],
+  "correct": "a",
+  "starter_code": null,
+  "solution_code": null,
+  "variant": null,
+  "image_url": "/t/f986125bfa71cd27.png",
+  "entry": null,
+  "max_changed_lines": null,
+  "forbidden": [],
+  "ai_refs": [],
+  "tests_public": [],
+  "tests_hidden": []
+ },
+ {
+  "kind": "mcq",
+  "idx": 7,
+  "title": "Үш айнымалы",
+  "statement": "Код нәтижесі:",
+  "points": 1,
+  "options": [
+   {
+    "key": "a",
+    "text": "x тең 3 , y тең 9 , z тең 15\nx тең 48 , y тең 35 , z тең 4\nx тең 100 , y тең 4 , z тең 50"
+   },
+   {
+    "key": "b",
+    "text": "x тең 3 , y тең 4 , z тең 15\nx тең 48 , y тең 4 , z тең 35\nx тең 100 , y тең 4 , z тең 50"
+   },
+   {
+    "key": "c",
+    "text": "x тең 3 , y тең 9 , z тең 15\nx тең 48 , y тең 4 , z тең 35\nx тең 100 , y тең 4 , z тең 50"
+   },
+   {
+    "key": "d",
+    "text": "x тең 3 , y тең 9 , z тең 15\nx тең 48 , y тең 4 , z тең 35\nx тең 50 , y тең 4 , z тең 100"
+   }
+  ],
+  "correct": "c",
+  "starter_code": null,
+  "solution_code": null,
+  "variant": null,
+  "image_url": "/t/4f07fcd20ca9cff5.png",
+  "entry": null,
+  "max_changed_lines": null,
+  "forbidden": [],
+  "ai_refs": [],
+  "tests_public": [],
+  "tests_hidden": []
+ },
+ {
+  "kind": "mcq",
+  "idx": 8,
+  "title": "Рекурсия",
+  "statement": "Recursion(5) шақырылғандағы код нәтижесі:",
+  "points": 1,
+  "options": [
+   {
+    "key": "a",
+    "text": "2 3 4 5"
+   },
+   {
+    "key": "b",
+    "text": "5 4 3 2"
+   },
+   {
+    "key": "c",
+    "text": "5 4 3 2 1"
+   },
+   {
+    "key": "d",
+    "text": "1 2 3 4 5"
+   }
+  ],
+  "correct": "a",
+  "starter_code": null,
+  "solution_code": null,
+  "variant": null,
+  "image_url": "/t/8d0aa6ef4e070c24.png",
+  "entry": null,
+  "max_changed_lines": null,
+  "forbidden": [],
+  "ai_refs": [],
+  "tests_public": [],
+  "tests_hidden": []
+ },
+ {
+  "kind": "mcq",
+  "idx": 9,
+  "title": "Функция түрі",
+  "statement": "Кодта қолданылған функция түрі:",
+  "points": 1,
+  "options": [
+   {
+    "key": "a",
+    "text": "параметрсіз процедура"
+   },
+   {
+    "key": "b",
+    "text": "рекурсивтік функция"
+   },
+   {
+    "key": "c",
+    "text": "параметрлі функция"
+   },
+   {
+    "key": "d",
+    "text": "лямбда функция"
+   }
+  ],
+  "correct": "b",
+  "starter_code": null,
+  "solution_code": null,
+  "variant": null,
+  "image_url": "/t/fc6c41aa73f6d287.png",
+  "entry": null,
+  "max_changed_lines": null,
+  "forbidden": [],
+  "ai_refs": [],
+  "tests_public": [],
+  "tests_hidden": []
+ },
+ {
+  "kind": "mcq",
+  "idx": 10,
+  "title": "Жолды талдау",
+  "statement": "s айнымалысына \"ЖБ ағай краш қой \" мәнін бергендегі нәтиже\n(назар аудар: жол соңында бір бос орын бар)",
+  "points": 1,
+  "options": [
+   {
+    "key": "a",
+    "text": "6"
+   },
+   {
+    "key": "b",
+    "text": "4"
+   },
+   {
+    "key": "c",
+    "text": "5"
+   },
+   {
+    "key": "d",
+    "text": "3"
+   }
+  ],
+  "correct": "c",
+  "starter_code": null,
+  "solution_code": null,
+  "variant": null,
+  "image_url": "/t/13232afac10d59e8.png",
+  "entry": null,
+  "max_changed_lines": null,
+  "forbidden": [],
+  "ai_refs": [],
+  "tests_public": [],
+  "tests_hidden": []
+ },
+ {
+  "kind": "debug",
+  "idx": 11,
+  "title": "Цифрлар қосындысы",
+  "statement": "Натурал санның цифрларының қосындысын қайтарады.\nМысалы: 1234 → 10.\nБІР жолда қате бар — тек соны түзет.",
+  "points": 3,
+  "options": null,
+  "correct": null,
+  "starter_code": "def cifr_qosyndy(n):\n    s = 0\n    while n > 0:\n        s = s + n % 10\n        n = n / 10\n    return s\n",
+  "solution_code": "def cifr_qosyndy(n):\n    s = 0\n    while n > 0:\n        s = s + n % 10\n        n = n // 10\n    return s\n",
+  "variant": null,
+  "image_url": null,
+  "entry": "cifr_qosyndy",
+  "max_changed_lines": 1,
+  "forbidden": [],
+  "ai_refs": [],
+  "tests_public": [
+   {
+    "args": [
+     1234
+    ],
+    "expected": "10"
+   },
+   {
+    "args": [
+     7
+    ],
+    "expected": "7"
+   }
+  ],
+  "tests_hidden": [
+   {
+    "args": [
+     0
+    ],
+    "expected": "0"
+   },
+   {
+    "args": [
+     9
+    ],
+    "expected": "9"
+   },
+   {
+    "args": [
+     10
+    ],
+    "expected": "1"
+   },
+   {
+    "args": [
+     99
+    ],
+    "expected": "18"
+   },
+   {
+    "args": [
+     505
+    ],
+    "expected": "10"
+   },
+   {
+    "args": [
+     1000
+    ],
+    "expected": "1"
+   },
+   {
+    "args": [
+     9999
+    ],
+    "expected": "36"
+   },
+   {
+    "args": [
+     123456
+    ],
+    "expected": "21"
+   },
+   {
+    "args": [
+     1000000
+    ],
+    "expected": "1"
+   },
+   {
+    "args": [
+     80808
+    ],
+    "expected": "24"
+   },
+   {
+    "args": [
+     31
+    ],
+    "expected": "4"
+   },
+   {
+    "args": [
+     2026
+    ],
+    "expected": "10"
+   }
+  ]
+ },
+ {
+  "kind": "debug",
+  "idx": 12,
+  "title": "Палиндром",
+  "statement": "Жол палиндром болса (екі жағынан бірдей оқылса) True, әйтпесе False қайтарады.\nМысалы: \"anna\" → True, \"python\" → False.\nБІР жолда қате бар — тек соны түзет.",
+  "points": 3,
+  "options": null,
+  "correct": null,
+  "starter_code": "def palindrom(s):\n    n = len(s)\n    for i in range(n // 2):\n        if s[i] != s[n - i]:\n            return False\n    return True\n",
+  "solution_code": "def palindrom(s):\n    n = len(s)\n    for i in range(n // 2):\n        if s[i] != s[n - 1 - i]:\n            return False\n    return True\n",
+  "variant": null,
+  "image_url": null,
+  "entry": "palindrom",
+  "max_changed_lines": 1,
+  "forbidden": [],
+  "ai_refs": [],
+  "tests_public": [
+   {
+    "args": [
+     "anna"
+    ],
+    "expected": "True"
+   },
+   {
+    "args": [
+     "python"
+    ],
+    "expected": "False"
+   }
+  ],
+  "tests_hidden": [
+   {
+    "args": [
+     ""
+    ],
+    "expected": "True"
+   },
+   {
+    "args": [
+     "a"
+    ],
+    "expected": "True"
+   },
+   {
+    "args": [
+     "aa"
+    ],
+    "expected": "True"
+   },
+   {
+    "args": [
+     "ab"
+    ],
+    "expected": "False"
+   },
+   {
+    "args": [
+     "aba"
+    ],
+    "expected": "True"
+   },
+   {
+    "args": [
+     "abca"
+    ],
+    "expected": "False"
+   },
+   {
+    "args": [
+     "abcba"
+    ],
+    "expected": "True"
+   },
+   {
+    "args": [
+     "abccba"
+    ],
+    "expected": "True"
+   },
+   {
+    "args": [
+     "abcdba"
+    ],
+    "expected": "False"
+   },
+   {
+    "args": [
+     "qazaq"
+    ],
+    "expected": "True"
+   },
+   {
+    "args": [
+     "kiyik"
+    ],
+    "expected": "True"
+   },
+   {
+    "args": [
+     "debug"
+    ],
+    "expected": "False"
+   },
+   {
+    "args": [
+     "xyzzyx"
+    ],
+    "expected": "True"
+   },
+   {
+    "args": [
+     "xyzzyy"
+    ],
+    "expected": "False"
+   }
+  ]
+ },
+ {
+  "kind": "debug",
+  "idx": 13,
+  "title": "Ең кіші элементтің орны",
+  "statement": "Тізімдегі ең кіші элементтің орнын (индексін) қайтарады. Ең кішісі бірнешеу болса — біріншісінің орнын.\nМысалы: [5, 3, 8] → 1.\nБІР жолда қате бар — тек соны түзет.",
+  "points": 3,
+  "options": null,
+  "correct": null,
+  "starter_code": "def eng_kishi_orny(a):\n    k = 0\n    for i in range(1, len(a)):\n        if a[i] < a[k]:\n            k = a[i]\n    return k\n",
+  "solution_code": "def eng_kishi_orny(a):\n    k = 0\n    for i in range(1, len(a)):\n        if a[i] < a[k]:\n            k = i\n    return k\n",
+  "variant": null,
+  "image_url": null,
+  "entry": "eng_kishi_orny",
+  "max_changed_lines": 1,
+  "forbidden": [],
+  "ai_refs": [],
+  "tests_public": [
+   {
+    "args": [
+     [
+      5,
+      3,
+      8
+     ]
+    ],
+    "expected": "1"
+   },
+   {
+    "args": [
+     [
+      4,
+      9,
+      1,
+      7
+     ]
+    ],
+    "expected": "2"
+   }
+  ],
+  "tests_hidden": [
+   {
+    "args": [
+     [
+      9
+     ]
+    ],
+    "expected": "0"
+   },
+   {
+    "args": [
+     [
+      1,
+      2,
+      3
+     ]
+    ],
+    "expected": "0"
+   },
+   {
+    "args": [
+     [
+      3,
+      2,
+      1,
+      0
+     ]
+    ],
+    "expected": "3"
+   },
+   {
+    "args": [
+     [
+      4,
+      4,
+      1,
+      1
+     ]
+    ],
+    "expected": "2"
+   },
+   {
+    "args": [
+     [
+      -1,
+      -5,
+      -5
+     ]
+    ],
+    "expected": "1"
+   },
+   {
+    "args": [
+     [
+      10,
+      20,
+      5,
+      30
+     ]
+    ],
+    "expected": "2"
+   },
+   {
+    "args": [
+     [
+      7,
+      7,
+      7
+     ]
+    ],
+    "expected": "0"
+   },
+   {
+    "args": [
+     [
+      0,
+      -1
+     ]
+    ],
+    "expected": "1"
+   },
+   {
+    "args": [
+     [
+      100,
+      50,
+      75,
+      50,
+      25
+     ]
+    ],
+    "expected": "4"
+   },
+   {
+    "args": [
+     [
+      2,
+      1,
+      2,
+      1,
+      0,
+      3
+     ]
+    ],
+    "expected": "4"
+   },
+   {
+    "args": [
+     [
+      -3,
+      -2,
+      -1
+     ]
+    ],
+    "expected": "0"
+   },
+   {
+    "args": [
+     [
+      8,
+      6,
+      7,
+      5,
+      3,
+      0,
+      9
+     ]
+    ],
+    "expected": "5"
+   }
+  ]
+ },
+ {
+  "kind": "debug",
+  "idx": 14,
+  "title": "Ең үлкен ортақ бөлгіш",
+  "statement": "Екі теріс емес бүтін санның ең үлкен ортақ бөлгішін (ЕҮОБ) Евклид алгоритмімен табады.\nМысалы: euob(12, 8) → 4.\nБІР жолда қате бар — тек соны түзет.",
+  "points": 3,
+  "options": null,
+  "correct": null,
+  "starter_code": "def euob(a, b):\n    while b != 0:\n        a, b = b, a // b\n    return a\n",
+  "solution_code": "def euob(a, b):\n    while b != 0:\n        a, b = b, a % b\n    return a\n",
+  "variant": null,
+  "image_url": null,
+  "entry": "euob",
+  "max_changed_lines": 1,
+  "forbidden": [],
+  "ai_refs": [],
+  "tests_public": [
+   {
+    "args": [
+     12,
+     8
+    ],
+    "expected": "4"
+   },
+   {
+    "args": [
+     7,
+     3
+    ],
+    "expected": "1"
+   }
+  ],
+  "tests_hidden": [
+   {
+    "args": [
+     1,
+     1
+    ],
+    "expected": "1"
+   },
+   {
+    "args": [
+     5,
+     0
+    ],
+    "expected": "5"
+   },
+   {
+    "args": [
+     0,
+     9
+    ],
+    "expected": "9"
+   },
+   {
+    "args": [
+     100,
+     75
+    ],
+    "expected": "25"
+   },
+   {
+    "args": [
+     17,
+     17
+    ],
+    "expected": "17"
+   },
+   {
+    "args": [
+     48,
+     18
+    ],
+    "expected": "6"
+   },
+   {
+    "args": [
+     18,
+     48
+    ],
+    "expected": "6"
+   },
+   {
+    "args": [
+     13,
+     5
+    ],
+    "expected": "1"
+   },
+   {
+    "args": [
+     1000,
+     10
+    ],
+    "expected": "10"
+   },
+   {
+    "args": [
+     81,
+     27
+    ],
+    "expected": "27"
+   },
+   {
+    "args": [
+     35,
+     14
+    ],
+    "expected": "7"
+   },
+   {
+    "args": [
+     2026,
+     10
+    ],
+    "expected": "2"
+   },
+   {
+    "args": [
+     9,
+     28
+    ],
+    "expected": "1"
+   },
+   {
+    "args": [
+     64,
+     48
+    ],
+    "expected": "16"
+   }
+  ]
+ },
+ {
+  "kind": "code",
+  "idx": 15,
+  "title": "Жолды сығу",
+  "statement": "Жолды сығ: қатар тұрған бірдей таңбалардың орнына «таңба + саны» жаз.\n\nМысалдар:\n```\n\"aaabbc\"  →  \"a3b2c1\"\n\"abc\"     →  \"a1b1c1\"\n\"\"        →  \"\"\n```\nЖолда тек кіші латын әріптері болады. Кітапхана қолдануға болмайды (import жоқ).",
+  "points": 4,
+  "options": null,
+  "correct": null,
+  "starter_code": "def sygu(s):\n    # осында жаз\n    pass\n",
+  "solution_code": "def sygu(s):\n    if s == \"\":\n        return \"\"\n    res = \"\"\n    cur = s[0]\n    n = 1\n    for ch in s[1:]:\n        if ch == cur:\n            n += 1\n        else:\n            res += cur + str(n)\n            cur = ch\n            n = 1\n    res += cur + str(n)\n    return res\n",
+  "variant": null,
+  "image_url": null,
+  "entry": "sygu",
+  "max_changed_lines": null,
+  "forbidden": [
+   "import"
+  ],
+  "ai_refs": [],
+  "tests_public": [
+   {
+    "args": [
+     "aaabbc"
+    ],
+    "expected": "'a3b2c1'"
+   },
+   {
+    "args": [
+     ""
+    ],
+    "expected": "''"
+   }
+  ],
+  "tests_hidden": [
+   {
+    "args": [
+     "a"
+    ],
+    "expected": "'a1'"
+   },
+   {
+    "args": [
+     "abc"
+    ],
+    "expected": "'a1b1c1'"
+   },
+   {
+    "args": [
+     "aaaaaaaaaaaa"
+    ],
+    "expected": "'a12'"
+   },
+   {
+    "args": [
+     "aabbaa"
+    ],
+    "expected": "'a2b2a2'"
+   },
+   {
+    "args": [
+     "zzzzy"
+    ],
+    "expected": "'z4y1'"
+   },
+   {
+    "args": [
+     "abbbbbbbbbbc"
+    ],
+    "expected": "'a1b10c1'"
+   },
+   {
+    "args": [
+     "xyxyxy"
+    ],
+    "expected": "'x1y1x1y1x1y1'"
+   },
+   {
+    "args": [
+     "kkkkkkkkkkkkkkkkkkkkk"
+    ],
+    "expected": "'k21'"
+   },
+   {
+    "args": [
+     "debug"
+    ],
+    "expected": "'d1e1b1u1g1'"
+   },
+   {
+    "args": [
+     "aabbccdd"
+    ],
+    "expected": "'a2b2c2d2'"
+   },
+   {
+    "args": [
+     "mississippi"
+    ],
+    "expected": "'m1i1s2i1s2i1p2i1'"
+   },
+   {
+    "args": [
+     "qqqwwwweee"
+    ],
+    "expected": "'q3w4e3'"
+   },
+   {
+    "args": [
+     "z"
+    ],
+    "expected": "'z1'"
+   },
+   {
+    "args": [
+     "abccccccccccccba"
+    ],
+    "expected": "'a1b1c12b1a1'"
+   }
+  ]
+ },
+ {
+  "kind": "code",
+  "idx": 16,
+  "title": "Ең ұзын өспелі бөлік",
+  "statement": "Тізімде қатар тұрған, әрқайсысы алдыңғысынан ҮЛКЕН сандардың ең ұзын тізбегінің ұзындығын қайтар.\n\nМысалдар:\n```\n[1, 2, 2, 3, 4, 1]  →  3     (2, 3, 4)\n[5, 4, 3]           →  1\n[]                  →  0\n```\nТең сандар өсу болып саналмайды. Кітапхана қолдануға болмайды (import жоқ).",
+  "points": 4,
+  "options": null,
+  "correct": null,
+  "starter_code": "def eng_uzyn_ospeli(a):\n    # осында жаз\n    pass\n",
+  "solution_code": "def eng_uzyn_ospeli(a):\n    if len(a) == 0:\n        return 0\n    best = 1\n    cur = 1\n    for i in range(1, len(a)):\n        if a[i] > a[i - 1]:\n            cur = cur + 1\n        else:\n            cur = 1\n        if cur > best:\n            best = cur\n    return best\n",
+  "variant": null,
+  "image_url": null,
+  "entry": "eng_uzyn_ospeli",
+  "max_changed_lines": null,
+  "forbidden": [
+   "import"
+  ],
+  "ai_refs": [],
+  "tests_public": [
+   {
+    "args": [
+     [
+      1,
+      2,
+      2,
+      3,
+      4,
+      1
+     ]
+    ],
+    "expected": "3"
+   },
+   {
+    "args": [
+     [
+      5,
+      4,
+      3
+     ]
+    ],
+    "expected": "1"
+   }
+  ],
+  "tests_hidden": [
+   {
+    "args": [
+     []
+    ],
+    "expected": "0"
+   },
+   {
+    "args": [
+     [
+      7
+     ]
+    ],
+    "expected": "1"
+   },
+   {
+    "args": [
+     [
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    ],
+    "expected": "5"
+   },
+   {
+    "args": [
+     [
+      5,
+      4,
+      3,
+      2,
+      1
+     ]
+    ],
+    "expected": "1"
+   },
+   {
+    "args": [
+     [
+      1,
+      1,
+      1
+     ]
+    ],
+    "expected": "1"
+   },
+   {
+    "args": [
+     [
+      1,
+      2,
+      1,
+      2,
+      3
+     ]
+    ],
+    "expected": "3"
+   },
+   {
+    "args": [
+     [
+      3,
+      4,
+      5,
+      1,
+      2
+     ]
+    ],
+    "expected": "3"
+   },
+   {
+    "args": [
+     [
+      1,
+      3,
+      2,
+      4,
+      6,
+      8,
+      7
+     ]
+    ],
+    "expected": "4"
+   },
+   {
+    "args": [
+     [
+      -3,
+      -2,
+      -1,
+      0
+     ]
+    ],
+    "expected": "4"
+   },
+   {
+    "args": [
+     [
+      2,
+      2,
+      3,
+      3,
+      4,
+      4
+     ]
+    ],
+    "expected": "2"
+   },
+   {
+    "args": [
+     [
+      10,
+      20,
+      30,
+      5,
+      6,
+      7,
+      8,
+      9
+     ]
+    ],
+    "expected": "5"
+   },
+   {
+    "args": [
+     [
+      1,
+      2,
+      3,
+      1,
+      2,
+      3,
+      4,
+      1,
+      2
+     ]
+    ],
+    "expected": "4"
+   },
+   {
+    "args": [
+     [
+      0,
+      0
+     ]
+    ],
+    "expected": "1"
+   },
+   {
+    "args": [
+     [
+      9,
+      1,
+      2
+     ]
+    ],
+    "expected": "2"
+   },
+   {
+    "args": [
+     [
+      4,
+      5
+     ]
+    ],
+    "expected": "2"
+   },
+   {
+    "args": [
+     [
+      5,
+      4
+     ]
+    ],
+    "expected": "1"
+   },
+   {
+    "args": [
+     [
+      1,
+      2,
+      3,
+      3,
+      4,
+      5,
+      6
+     ]
+    ],
+    "expected": "4"
+   },
+   {
+    "args": [
+     [
+      -1,
+      -5,
+      -2,
+      0,
+      3,
+      3
+     ]
+    ],
+    "expected": "4"
+   }
+  ]
+ }
+]
