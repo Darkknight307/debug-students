@@ -1,5 +1,5 @@
 import { currentStudent } from "../../../../lib/currentStudent";
-import { isServerConfigured } from "../../../../lib/supabaseAdmin";
+import { isServerConfigured } from "../../../../lib/server/auth";
 import { findOpenTask, loadContext, tooFast } from "../../../../lib/contest/server";
 import { pickIndices, signChallenge } from "../../../../lib/contest/challenge";
 import { fail, ok, readJson } from "../../../../lib/contest/http";

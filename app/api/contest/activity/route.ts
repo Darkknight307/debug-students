@@ -1,5 +1,6 @@
 import { currentStudent } from "../../../../lib/currentStudent";
-import { isServerConfigured, supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import { isServerConfigured } from "../../../../lib/server/auth";
+import { getStore } from "../../../../lib/server/store";
 import { loadContext, tooFast } from "../../../../lib/contest/server";
 import { fail, ok, readJson } from "../../../../lib/contest/http";
 
@@ -47,17 +48,13 @@ export async function POST(req: Request) {
   const w = ctx?.windows.find((x) => x.round.id === roundId);
   if (!ctx || !w || w.state === "pending" || (w.endsAt !== null && now - w.endsAt > LATE_MS)) return ok({ stored: false });
 
-  const { error } = await supabaseAdmin()
-    .from("activity")
-    .upsert(
-      { round_id: roundId, student_id: student.id, contest_id: ctx.contest.id, data: sanitize(body?.data), updated_at: new Date(now).toISOString() },
-      { onConflict: "round_id,student_id" },
-    );
-  if (error) {
-    // 007_activity.sql әлі орындалмаған болса кесте жоқ — жарысқа кедергі жасамаймыз
+  try {
+    await getStore().upsertActivity({ round_id: roundId, student_id: student.id, contest_id: ctx.contest.id, data: sanitize(body?.data), updated_at: new Date(now).toISOString() });
+  } catch (e) {
+    // Бақылау дерегі жарысқа кедергі жасамауы керек
     if (!warned) {
       warned = true;
-      console.error("[activity] upsert:", error.message);
+      console.error("[activity] upsert:", (e as Error).message);
     }
     return ok({ stored: false });
   }

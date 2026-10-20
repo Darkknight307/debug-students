@@ -1,5 +1,6 @@
 import { currentStudent } from "../../../../lib/currentStudent";
-import { isServerConfigured, supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import { isServerConfigured } from "../../../../lib/server/auth";
+import { getStore } from "../../../../lib/server/store";
 import { GRACE_MS, findOpenTask, loadContext, tooFast } from "../../../../lib/contest/server";
 import { verifyChallenge } from "../../../../lib/contest/challenge";
 import { checkCode, compareOutputs } from "../../../../lib/contest/rules";
@@ -47,19 +48,13 @@ export async function POST(req: Request) {
   if (expected.some((e) => typeof e !== "string")) return fail(409, "Тапсырма жаңартылды. «Жіберу»-ді қайта басыңыз.");
 
   const correct = compareOutputs(outputs, expected as string[]);
-  const { error } = await supabaseAdmin().from("submissions").insert({
-    contest_id: ctx.contest.id,
-    round_id: active.round.id,
-    task_id: task.id,
-    student_id: student.id,
-    answer: JSON.stringify(outputs).slice(0, 20_000),
-    code,
-    is_correct: correct,
-    points: correct ? task.points : 0,
-    reason: correct ? null : "wrong",
-  });
-  if (error) {
-    console.error("[submit] insert:", error.message);
+  try {
+    await getStore().addSubmission({
+      contest_id: ctx.contest.id, round_id: active.round.id, task_id: task.id, student_id: student.id,
+      answer: JSON.stringify(outputs).slice(0, 20_000), code, is_correct: correct, points: correct ? task.points : 0, reason: correct ? null : "wrong",
+    });
+  } catch (e) {
+    console.error("[submit] insert:", (e as Error).message);
     return fail(500, "Жіберілім сақталмады. Қайталап көріңіз.");
   }
   return ok({ correct });

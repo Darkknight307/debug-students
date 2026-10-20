@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { currentStudent } from "../../../../lib/currentStudent";
-import { isServerConfigured, supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import { isServerConfigured } from "../../../../lib/server/auth";
+import { getStore } from "../../../../lib/server/store";
 import { isBoardLocked, loadContext, publicTask, roundTasks, variantFor } from "../../../../lib/contest/server";
 import { ranking } from "../../../../lib/contest/ranking";
 import { fail, ok } from "../../../../lib/contest/http";
@@ -61,13 +62,7 @@ export async function GET(req: NextRequest) {
     const hasVariants = allTasks.some((t) => t.variant);
     const tasks = allTasks.filter((t) => kind !== "mcq" || !t.variant || t.variant === variant);
 
-    const { data: subs } = await supabaseAdmin()
-      .from("submissions")
-      .select("task_id, answer, code, is_correct, created_at, id")
-      .eq("student_id", student.id)
-      .in("task_id", tasks.map((t) => t.id))
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false });
+    const subs = (await getStore().listSubmissions({ studentIds: [student.id], taskIds: tasks.map((t) => t.id) })).reverse();
 
     const mine: Record<string, { answer?: string; code?: string; verdict?: "correct" | "wrong" }> = {};
     for (const s of subs ?? []) {

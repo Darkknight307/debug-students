@@ -1,5 +1,6 @@
 import { currentStudent } from "../../../../lib/currentStudent";
-import { isServerConfigured, supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import { isServerConfigured } from "../../../../lib/server/auth";
+import { getStore } from "../../../../lib/server/store";
 import { GRACE_MS, findOpenTask, loadContext, tooFast, variantFor } from "../../../../lib/contest/server";
 import { fail, ok, readJson } from "../../../../lib/contest/http";
 
@@ -26,17 +27,13 @@ export async function POST(req: Request) {
   if (!(task.options ?? []).some((o) => o.key === choice)) return fail(400, "Мұндай жауап нұсқасы жоқ");
 
   const isCorrect = !!task.correct && choice === task.correct.toLowerCase();
-  const { error } = await supabaseAdmin().from("submissions").insert({
-    contest_id: ctx.contest.id,
-    round_id: active.round.id,
-    task_id: task.id,
-    student_id: student.id,
-    answer: choice,
-    is_correct: isCorrect,
-    points: isCorrect ? task.points : 0,
-  });
-  if (error) {
-    console.error("[answer] insert:", error.message);
+  try {
+    await getStore().addSubmission({
+      contest_id: ctx.contest.id, round_id: active.round.id, task_id: task.id, student_id: student.id,
+      answer: choice, code: null, is_correct: isCorrect, points: isCorrect ? task.points : 0, reason: null,
+    });
+  } catch (e) {
+    console.error("[answer] insert:", (e as Error).message);
     return fail(500, "Жауап сақталмады. Қайталап көріңіз.");
   }
   return ok({ saved: true });
