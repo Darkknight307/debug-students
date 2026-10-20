@@ -1,0 +1,152 @@
+// DEBUG · Студенттер — дерекқор моделі (Prisma ORM, SQLite).
+// DBMS-тен тәуелсіз: Postgres-ке ауысу үшін `provider` өзгертіледі (#50).
+// Уақыттар — UTC ISO жолдары (лексикалық реті = уақыт реті), JSON бағандары Prisma Json түрінде.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String       @id @default(uuid())
+  email          String       @unique
+  password_hash  String
+  role           String       @default("student") // student | admin
+  last_name      String
+  first_name     String
+  full_name      String // «Тегі Аты» — көпшілікке тек осы
+  university     String
+  course         String?
+  phone          String?
+  first_login_at String
+  last_login_at  String
+  reset_tokens   ResetToken[]
+
+  @@index([role, first_login_at])
+  @@map("users")
+}
+
+model ResetToken {
+  token_hash String @id // SHA-256; токеннің өзі сақталмайды
+  user_id    String
+  expires_at String
+  user       User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("reset_tokens")
+}
+
+model Contest {
+  id                 String  @id @default(uuid())
+  slug               String  @unique
+  title              String
+  starts_at          String
+  status             String  @default("draft") // draft | published | running | finished
+  board_locked       Boolean @default(false)
+  board_autolock_min Int     @default(10)
+  rounds             Round[]
+
+  @@map("contests")
+}
+
+model Round {
+  id           String  @id @default(uuid())
+  contest_id   String
+  idx          Int
+  kind         String // mcq | debug | code
+  title        String
+  duration_min Int     @default(30)
+  status       String  @default("pending") // pending | running | closed
+  started_at   String?
+  ends_at      String?
+  contest      Contest @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+  tasks        Task[]
+
+  @@unique([contest_id, idx])
+  @@map("rounds")
+}
+
+model Task {
+  id                String  @id @default(uuid())
+  round_id          String
+  idx               Int
+  title             String
+  statement         String  @default("")
+  points            Int     @default(1)
+  options           Json?
+  correct           String?
+  starter_code      String?
+  solution_code     String?
+  variant           String? // A | B | null (null = бәріне); (кезең, нөмір, нұсқа) бірегейлігін PrismaStore тексереді
+  image_url         String?
+  entry             String?
+  max_changed_lines Int?
+  forbidden         Json    @default("[]")
+  ai_refs           Json    @default("[]")
+  tests_public      Json    @default("[]")
+  tests_hidden      Json    @default("[]")
+  round             Round   @relation(fields: [round_id], references: [id], onDelete: Cascade)
+
+  @@index([round_id, idx])
+  @@map("tasks")
+}
+
+model Submission {
+  id         Int     @id @default(autoincrement())
+  contest_id String
+  round_id   String
+  task_id    String // тапсырма өшірілсе де жіберілім тарих үшін қалады
+  student_id String
+  answer     String?
+  code       String?
+  is_correct Boolean
+  points     Int
+  reason     String?
+  created_at String
+
+  @@index([contest_id, created_at])
+  @@index([student_id, task_id])
+  @@map("submissions")
+}
+
+model Extension {
+  round_id   String
+  student_id String
+  extra_min  Int
+
+  @@id([round_id, student_id])
+  @@map("extensions")
+}
+
+model Variant {
+  contest_id String
+  student_id String
+  variant    String
+
+  @@id([contest_id, student_id])
+  @@map("variants")
+}
+
+model Activity {
+  round_id   String
+  student_id String
+  contest_id String
+  data       Json
+  updated_at String
+
+  @@id([round_id, student_id])
+  @@index([contest_id])
+  @@map("activity")
+}
+
+model TaskImage {
+  id         String @id
+  mime       String
+  data       Bytes
+  created_at String
+
+  @@map("task_images")
+}
