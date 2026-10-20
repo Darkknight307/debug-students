@@ -60,7 +60,7 @@ export async function GET() {
       stale ? "STALE" : "DB",
     );
   } catch (e) {
-    console.error("[board] supabase:", (e as Error).message);
+    console.error("[board] db:", (e as Error).message);
     return json({ ok: false, locked: false, rows: [], total: 0, updated }, "DB-ERROR");
   }
 }

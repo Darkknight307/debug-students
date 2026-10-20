@@ -54,7 +54,7 @@ export async function GET() {
     try {
       cache = { at: Date.now(), data: await inflight };
     } catch (e) {
-      console.error("[landing] supabase:", (e as Error).message);
+      console.error("[landing] db:", (e as Error).message);
       if (!cache) return fail(); // ескі дерек те жоқ — басты бет өз әдепкі мәтінін көрсетеді
     }
   }
