@@ -1,10 +1,9 @@
-import { NextResponse } from "next/server";
-import { SESSION_COOKIE, sessionCookieOptions } from "../../../../lib/session";
+import { clearCookie } from "../../../../lib/server/auth";
+import { SESSION_COOKIE } from "../../../../lib/session";
+import { json } from "../../../../lib/server/route";
 
 export const runtime = "nodejs";
 
 export async function POST() {
-  const res = NextResponse.json({ ok: true });
-  res.cookies.set(SESSION_COOKIE, "", { ...sessionCookieOptions, maxAge: 0 });
-  return res;
+  return clearCookie(json({}), SESSION_COOKIE);
 }

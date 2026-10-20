@@ -1,13 +1,12 @@
 // Іске қосу: node --test tests/auth/unit.test.mts
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { AuthApiError, AuthRetryableFetchError } from "@supabase/supabase-js";
 import { clearFailures, hit, recordFailure, tooManyFailures } from "../../lib/rateLimit.ts";
 import { signSession, verifySession } from "../../lib/session.ts";
 import {
   formatPhone, fullNameOf, isValidEmail, normalizeEmail, normalizePhone, profileFromMetadata, profileToMetadata, validateRegistration,
 } from "../../lib/registration.ts";
-import { describeAuthError } from "../../lib/supabaseAuth.ts";
+import { hashPassword, sha256, verifyPassword } from "../../lib/server/password.ts";
 import { publicName } from "../../lib/publicName.ts";
 
 process.env.SESSION_SECRET = "unit-test-secret-unit-test-secret-000";
@@ -78,17 +77,17 @@ test("auth метадеректері: профиль ↔ user_metadata; әкі�
   assert.equal(profileFromMetadata(null), null);
 });
 
-test("Supabase қателері қазақша хабарға айналады", () => {
-  const api = (code: string, status = 400) => describeAuthError(new AuthApiError("x", status, code));
-  assert.deepEqual([api("invalid_credentials").status, api("invalid_credentials").message], [401, "Email немесе құпия сөз қате."]);
-  assert.equal(api("email_not_confirmed").status, 403);
-  assert.equal(api("user_already_exists", 422).status, 409);
-  assert.equal(api("weak_password", 422).status, 400);
-  assert.equal(api("over_email_send_rate_limit", 429).status, 429);
-  assert.equal(api("something_new", 429).status, 429);
-  assert.equal(api("something_new", 400).status, 400);
-  assert.equal(describeAuthError(new AuthRetryableFetchError("fetch failed", 0)).status, 503);
-  assert.equal(describeAuthError(null).status, 503); // белгісіз жағдай — «кейін қайталаңыз»
+test("құпия сөз: scrypt хэші, тұзы әр жолы басқа, тексеру timing-safe", async () => {
+  const h1 = await hashPassword("fixture-pass-1");
+  const h2 = await hashPassword("fixture-pass-1");
+  assert.match(h1, /^scrypt\$16384\$8\$1\$[\w-]+\$[\w-]+$/);
+  assert.notEqual(h1, h2);
+  assert.ok(!h1.includes("fixture-pass-1"));
+  assert.equal(await verifyPassword("fixture-pass-1", h1), true);
+  assert.equal(await verifyPassword("fixture-pass-2", h1), false);
+  assert.equal(await verifyPassword("Әйгерім-құпия", await hashPassword("Әйгерім-құпия")), true);
+  assert.equal(await verifyPassword("x", "not-a-hash"), false);
+  assert.equal(sha256("abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
 });
 
 test("сессия: дұрыс токен өтеді; бұрмаланған, қолтаңбасыз, мерзімі өткен — өтпейді", () => {

@@ -1,10 +1,11 @@
 import type { NextRequest } from "next/server";
-import { isServerConfigured } from "../../../../lib/supabaseAdmin";
-import { clientIp, describeAuthError, isAuthConfigured, siteUrl, supabaseAuth } from "../../../../lib/supabaseAuth";
+import { getStore, isConflict } from "../../../../lib/server/store";
+import { hashPassword } from "../../../../lib/server/password";
+import { isServerConfigured, setStudentSession } from "../../../../lib/server/auth";
+import { HttpError, body, json, route } from "../../../../lib/server/route";
 import { hit } from "../../../../lib/rateLimit";
-import { profileToMetadata, validateRegistration } from "../../../../lib/registration";
-import { StudentStoreError, saveStudent, withSession } from "../../../../lib/studentAccount";
-import { fail, ok, readJson } from "../../../../lib/contest/http";
+import { fullNameOf, validateRegistration } from "../../../../lib/registration";
+import { clientIp } from "../../../../lib/server/ip";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,47 +15,25 @@ const WINDOW_MS = 10 * 60_000;
 const IP_LIMIT = 40;
 const EMAIL_LIMIT = 5;
 
-/**
- * Тіркелу. Supabase-те «Confirm email» өшірулі болса — студент бірден кіреді (cookie беріледі).
- * Қосулы болса — Supabase растау хатын жібереді, студент жолы /auth/confirm-да құрылады.
- */
-export async function POST(req: NextRequest) {
-  if (!isServerConfigured() || !isAuthConfigured()) return fail(500, "Сервер әлі бапталмаған. Ұйымдастырушыға хабарласыңыз.");
-  const body = await readJson(req);
-  if (!body) return fail(415, "JSON күтілді");
-
-  const v = validateRegistration(body);
-  if (!v.ok) return fail(400, v.message, { field: v.field });
-  const { email, password, ...profile } = v.value;
-
+/** Тіркелу: тексеру → scrypt хэш → users (role=student) → debug_session. Email растау MVP-де жоқ (#49). */
+export const POST = route(async (req: NextRequest) => {
+  if (!isServerConfigured()) throw new HttpError(500, "Сервер әлі бапталмаған. Ұйымдастырушыға хабарласыңыз.");
+  const v = validateRegistration(await body(req));
+  if (!v.ok) throw new HttpError(400, v.message, { field: v.field });
+  const { email, password, ...p } = v.value;
   const ip = clientIp(req);
   if (hit("reg-ip:" + ip, IP_LIMIT, WINDOW_MS) || hit("reg:" + email, EMAIL_LIMIT, WINDOW_MS)) {
-    return fail(429, "Тым көп әрекет. 10 минуттан кейін қайталаңыз.");
+    throw new HttpError(429, "Тым көп әрекет. 10 минуттан кейін қайталаңыз.");
   }
-
-  const { data, error } = await supabaseAuth(ip).auth.signUp({
-    email,
-    password,
-    options: { data: profileToMetadata(profile), emailRedirectTo: siteUrl(req) + "/auth/confirm" },
-  });
-  if (error || !data.user) {
-    const f = describeAuthError(error);
-    if (f.status >= 500 || f.code === "unknown") console.warn("[auth] signup:", f.code, error?.status);
-    return fail(f.status, f.message, f.code === "user_already_exists" || f.code === "email_exists" ? { field: "email" } : {});
-  }
-
-  // Растау қосулы: хат жіберілді. Email бұрын тіркелген болса да Supabase дәл осындай жауап береді —
-  // бөтен адам «бұл email бар ма?» деп тексере алмауы үшін біз де айырмашылық көрсетпейміз.
-  if (!data.session) return ok({ needsConfirm: true });
-
   try {
-    const student = await saveStudent(data.user, profile);
-    return withSession(ok({ loggedIn: true, student: { fullName: student.full_name } }), student, data.user.id);
+    const user = await getStore().createUser({
+      email, password_hash: await hashPassword(password), role: "student",
+      last_name: p.lastName, first_name: p.firstName, full_name: fullNameOf(p.lastName, p.firstName),
+      university: p.university, course: p.course, phone: p.phone,
+    });
+    return setStudentSession(json({ loggedIn: true, student: { fullName: user.full_name } }), user.id);
   } catch (e) {
-    console.error("[auth] students upsert (register):", (e as Error).message);
-    if (e instanceof StudentStoreError && e.unreachable) {
-      return fail(503, "Аккаунт құрылды, бірақ DEBUG дерекқоры уақытша қолжетімсіз. Сәл кейін «Кіру» қойындысынан кіріңіз.");
-    }
-    return fail(500, "Аккаунт құрылды, бірақ тізімге қосылмады. «Кіру» қойындысынан кіріп көріңіз.");
+    if (isConflict(e)) throw new HttpError(409, "Бұл email-мен бұрын тіркелгенсіз. «Кіру» қойындысынан кіріңіз.", { field: "email" });
+    throw e;
   }
-}
+});
