@@ -54,7 +54,7 @@ contract ─ openapi.yml (every /api path; a test checks it matches the route fi
 10. **Rate limits** stay in memory per instance (`lib/rateLimit.ts`): login failures per email/IP, register/forgot per
     email/IP. Shared limits → #52.
 11. **Tests:** `node:test` through `tsx` for unit and store-contract tests; e2e suites start the real Next.js server
-    with `E2E_TEST_HOOKS=1` (enables `/api/__test/*`: reset, seed, patch, dump, outbox) on `DB_DRIVER=memory` and on a
+    with `E2E_TEST_HOOKS=1` (enables `/api/test-hooks/*`: reset, seed, patch, dump, outbox) on `DB_DRIVER=memory` and on a
     temporary SQLite file. The hooks return 404 unless the env flag is set.
 12. **Iterations** (see `process.md`): 0 process → 1 frontend + mockService → 2 `openapi.yml` → 3 in-memory backend →
     4 SQLite → 5 connect. Each iteration is a set of `iter-*` issues.

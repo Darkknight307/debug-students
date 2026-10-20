@@ -159,7 +159,7 @@ Description: GET /api/admin/stats, GET /api/admin/students?q=, POST /api/admin/r
 
 ### 37. Test hooks and e2e suites on the in-memory backend
 Goal: The e2e suites run against the real Next.js server with the in-memory store.
-Description: E2E_TEST_HOOKS=1 enables /api/__test/* (seed, patch, dump, outbox); contest, auth and admin e2e rewritten on it.
+Description: E2E_TEST_HOOKS=1 enables /api/test-hooks/* (seed, patch, dump, outbox); contest, auth and admin e2e rewritten on it.
 
 ## iter-4-backend-sqlite
 

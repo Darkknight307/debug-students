@@ -8,7 +8,7 @@ info:
     errors carry `message` (Kazakh, shown to the user) and sometimes `field`.
     Sessions are httpOnly cookies: `debug_session` (student) and `debug_admin` (admin). All POST bodies are JSON
     (`application/json`) — other content types get 415 (CSRF protection), except image upload.
-    Test-only routes under `/api/__test/*` exist only with `E2E_TEST_HOOKS=1` and are not part of this contract.
+    Test-only routes under `/api/test-hooks/*` exist only with `E2E_TEST_HOOKS=1` and are not part of this contract.
 servers:
   - url: http://localhost:3000
 tags:

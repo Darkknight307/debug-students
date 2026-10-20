@@ -19,7 +19,7 @@
 - Name tests after behaviour, in Kazakh or English: `test("студент әкімші API-іне кіре алмайды", …)`.
 - Never rely on the real clock for logic: pass `now` explicitly (services take `now = Date.now()`).
 - E2E servers each get their own port **and** `NEXT_DIST_DIR`; two servers sharing `.next` break each other.
-- Seed e2e data through the test hooks (`/api/__test/seed`), which exist only with `E2E_TEST_HOOKS=1`.
+- Seed e2e data through the test hooks (`/api/test-hooks/seed`), which exist only with `E2E_TEST_HOOKS=1`.
 
 ## Test data
 
