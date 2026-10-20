@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { supabase, KIND_LABEL, type Contest, type Round } from "../../lib/supabase";
+import { api, KIND_LABEL, type AdminContest as Contest, type AdminRound as Round } from "../../lib/client";
 
 type Ext = { student_id: string; extra_min: number; name: string };
 type Found = { id: string; full_name: string };
@@ -33,19 +33,13 @@ export default function OperatorConsole({
   const running = rounds.find((r) => r.status === "running") ?? null;
 
   const loadLive = useCallback(async () => {
-    const [subs, people] = await Promise.all([
-      supabase.from("submissions").select("id", { count: "exact", head: true }).eq("contest_id", contest.id),
-      supabase.from("contest_variants").select("student_id", { count: "exact", head: true }).eq("contest_id", contest.id),
-    ]);
-    setStats({ subs: subs.count ?? 0, people: people.count ?? 0 });
-    if (running) {
-      const { data } = await supabase.from("round_extensions").select("student_id, extra_min, students(full_name)").eq("round_id", running.id);
-      setExts((data ?? []).map((r: { student_id: string; extra_min: number; students: unknown }) => ({
-        student_id: r.student_id,
-        extra_min: r.extra_min,
-        name: (r.students as { full_name?: string } | null)?.full_name ?? "?",
-      })));
-    } else setExts([]);
+    try {
+      const o = await api.admin.operator(contest.id);
+      setStats({ subs: o.submissions, people: o.people });
+      setExts(o.extensions);
+    } catch {
+      /* келесі жолы */
+    }
   }, [contest.id, running]);
 
   useEffect(() => {
@@ -55,36 +49,45 @@ export default function OperatorConsole({
     return () => { clearInterval(a); clearInterval(b); };
   }, [loadLive]);
 
-  async function rpc(name: string, args: Record<string, unknown>, confirmText?: string) {
+  async function rpc(name: "start" | "extend" | "close", roundId: string, confirmText?: string) {
     if (confirmText && !confirm(confirmText)) return;
     setBusy(name);
     setMsg("");
-    const { error } = await supabase.rpc(name, args);
-    setBusy("");
-    if (error) return setMsg("! " + error.message);
-    onChanged();
+    try {
+      if (name === "start") await api.admin.startRound(roundId);
+      else if (name === "extend") await api.admin.extendRound(roundId, 5);
+      else await api.admin.closeRound(roundId);
+      onChanged();
+    } catch (e) {
+      setMsg("! " + (e as Error).message);
+    } finally {
+      setBusy("");
+    }
   }
 
   async function setBoard(patch: Partial<Contest>) {
-    const { error } = await supabase.from("contests").update(patch).eq("id", contest.id);
-    if (error) return setMsg("! " + error.message);
-    onChanged();
+    try {
+      await api.admin.updateContest(contest.id, patch);
+      onChanged();
+    } catch (e) {
+      setMsg("! " + (e as Error).message);
+    }
   }
 
   async function search(text: string) {
     setQ(text);
     if (text.trim().length < 2) return setFound([]);
-    const { data } = await supabase.from("students").select("id, full_name").ilike("full_name", `%${text.trim()}%`).order("full_name").limit(8);
-    setFound((data ?? []) as Found[]);
+    setFound(await api.admin.searchStudents(text).catch(() => []));
   }
 
   async function extendStudent(s: Found) {
     if (!running) return;
-    const prev = exts.find((e) => e.student_id === s.id)?.extra_min ?? 0;
-    const { error } = await supabase.from("round_extensions")
-      .upsert({ round_id: running.id, student_id: s.id, extra_min: Math.min(prev + 5, 60) }, { onConflict: "round_id,student_id" });
-    if (error) return setMsg("! " + error.message);
-    setMsg(`✓ ${s.full_name}: +${prev + 5} мин (${running.idx}-кезең)`);
+    try {
+      const { extra_min } = await api.admin.extendStudent(running.id, s.id);
+      setMsg(`✓ ${s.full_name}: +${extra_min} мин (${running.idx}-кезең)`);
+    } catch (e) {
+      return setMsg("! " + (e as Error).message);
+    }
     setQ("");
     setFound([]);
     loadLive();
@@ -118,18 +121,18 @@ export default function OperatorConsole({
                 <div className="actions">
                   {r.status !== "running" && (
                     <button className="btn btn-sm" disabled={!!busy}
-                            onClick={() => rpc("admin_start_round", { p_round: r.id },
+                            onClick={() => rpc("start", r.id,
                               `${r.idx}-кезеңді (${KIND_LABEL[r.kind]}) бастаймыз ба?${running ? `\n${running.idx}-кезең жабылады.` : ""}${r.status === "closed" ? "\nБұл кезең бұрын өткен — уақыты қайта басталады." : ""}`)}>
                       бастау
                     </button>
                   )}
                   {r.status === "running" && (
                     <>
-                      <button className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => rpc("admin_extend_round", { p_round: r.id, p_min: 5 })}>
+                      <button className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => rpc("extend", r.id)}>
                         +5 мин бәріне
                       </button>
                       <button className="btn btn-danger btn-sm" disabled={!!busy}
-                              onClick={() => rpc("admin_close_round", { p_round: r.id }, `${r.idx}-кезеңді қазір аяқтаймыз ба? Студенттер жауап жібере алмайды.`)}>
+                              onClick={() => rpc("close", r.id, `${r.idx}-кезеңді қазір аяқтаймыз ба? Студенттер жауап жібере алмайды.`)}>
                         аяқтау
                       </button>
                     </>
