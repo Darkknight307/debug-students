@@ -3,13 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "DATABASE_URL=${DATABASE_URL:-file:./dev.db} prisma migrate deploy && DATABASE_URL=${DATABASE_URL:-file:./dev.db} next dev -p 3000",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "test": "tsx --test \"tests/**/*.test.mts\"",
-    "test:e2e": "node tests/contest/e2e.mjs && bash tests/auth/e2e.sh && node tests/admin/e2e.mjs",
-    "dev:mock": "NEXT_PUBLIC_API_MODE=mock NEXT_DIST_DIR=node_modules/.cache/next-mockui next dev -p 3000"
+    "test:e2e": "bash tests/e2e.sh",
+    "dev:mock": "NEXT_PUBLIC_API_MODE=mock NEXT_DIST_DIR=node_modules/.cache/next-mockui next dev -p 3000",
+    "db:deploy": "DATABASE_URL=${DATABASE_URL:-file:./dev.db} prisma migrate deploy",
+    "db:migrate": "DATABASE_URL=${DATABASE_URL:-file:./dev.db} prisma migrate dev",
+    "db:seed": "DATABASE_URL=${DATABASE_URL:-file:./dev.db} tsx prisma/seed.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",
@@ -18,8 +22,9 @@
     "@codemirror/state": "^6.7.6",
     "@codemirror/view": "^6.43.13",
     "@lezer/highlight": "^1.2.4",
-    "@supabase/supabase-js": "^2.116.0",
+    "@prisma/client": "^6.19.3",
     "next": "^15.5.25",
+    "prisma": "^6.19.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
