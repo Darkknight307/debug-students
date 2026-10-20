@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+.vercel
+*.log
+.DS_Store
+next-env.d.ts
+*.db
+*.db-journal
+prisma/*.db*
+.idea/
+.claude/

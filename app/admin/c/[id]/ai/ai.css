@@ -1,0 +1,58 @@
+/* DEBUG · әкімші: ЖИ талдауы */
+.ai .dim { color: var(--dim); }
+.ai-note { margin-top: 22px; border-color: rgba(242, 169, 59, 0.4); background: rgba(242, 169, 59, 0.05); }
+.ai-note p { line-height: 1.7; color: var(--text); }
+.ai-note b { color: var(--warn); }
+
+.ai-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 18px; }
+.ai-stats > div { border: 1px solid var(--hairline); border-radius: 12px; padding: 14px 16px; background: rgba(10, 16, 23, 0.6); }
+.ai-stats b { display: block; font-size: 26px; font-weight: 800; color: var(--title); letter-spacing: -0.03em; line-height: 1.1; }
+.ai-stats span { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); }
+.ai-stats .lv.high b { color: var(--err); }
+.ai-stats .lv.medium b { color: var(--warn); }
+.ai-stats .lv.low b { color: var(--accent); }
+
+.ai-checks { display: flex; flex-wrap: wrap; gap: 10px 22px; }
+.ai-checks label { display: flex; align-items: center; gap: 8px; margin: 0; text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--text); cursor: pointer; }
+.ai-checks input { width: 16px; min-height: 16px; accent-color: var(--accent); }
+.ai-hint { margin-top: 14px; line-height: 1.8; text-transform: none; letter-spacing: 0.02em; }
+
+.ai-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ai-table th { text-align: left; padding: 11px 14px; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); font-weight: 500; background: var(--panel-2); white-space: nowrap; }
+.ai-table td { padding: 11px 14px; border-top: 1px solid var(--hairline-soft); vertical-align: top; }
+.ai-table tr.lvrow { cursor: pointer; }
+.ai-table tr.lvrow:hover { background: rgba(52, 224, 196, 0.04); }
+.ai-table .name { color: var(--title); white-space: nowrap; }
+.ai-table .why { color: var(--muted); min-width: 260px; }
+.ai-table tr.detail td { background: rgba(6, 10, 15, 0.55); padding: 18px; }
+
+.ai .badge { display: inline-block; border: 1px solid var(--hairline); border-radius: 999px; padding: 3px 10px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; color: var(--muted); }
+.ai .badge.high { color: var(--err); border-color: rgba(255, 92, 122, 0.45); background: rgba(255, 92, 122, 0.07); }
+.ai .badge.medium { color: var(--warn); border-color: rgba(242, 169, 59, 0.45); background: rgba(242, 169, 59, 0.06); }
+.ai .badge.low { color: var(--muted); }
+.ai .badge.ok { color: var(--accent); border-color: rgba(52, 224, 196, 0.4); }
+
+.ai-detail { display: grid; gap: 18px; }
+.ai-detail .reasons p { display: grid; grid-template-columns: 46px 110px 1fr; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--hairline-soft); line-height: 1.55; }
+.ai-detail .reasons p.dim { display: block; border: 0; }
+.ai-detail .reasons b { color: var(--warn); font-variant-numeric: tabular-nums; }
+.ai-detail .reasons p.minus b { color: var(--accent); }
+.ai-detail .reasons i { font-style: normal; color: var(--dim); font-size: 11.5px; }
+.ai-detail .tasks { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+.ai-detail .task { border: 1px solid var(--hairline); border-radius: 12px; padding: 14px; min-width: 0; }
+.ai-detail .thead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; color: var(--title); }
+.ai-detail .meta { font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 4px; }
+.ai-detail .meta.hot { color: var(--warn); }
+.ai .code { margin: 10px 0 0; padding: 12px 14px; background: rgba(6, 10, 15, 0.85); border: 1px solid var(--hairline); border-radius: 10px; font-family: var(--mono); font-size: 12.5px; line-height: 1.55; color: var(--title); overflow-x: auto; white-space: pre; tab-size: 4; }
+
+.ai-cluster summary, .ai-method summary { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; list-style: none; }
+.ai-cluster summary::-webkit-details-marker, .ai-method summary::-webkit-details-marker { display: none; }
+.ai-cluster summary b { color: var(--title); }
+.ai-cluster .members { color: var(--text); line-height: 1.8; }
+.ai-method ul { margin: 12px 0; padding-left: 18px; display: grid; gap: 6px; line-height: 1.6; color: var(--text); }
+.ai-method li b { color: var(--warn); }
+
+@media (max-width: 720px) {
+  .ai-detail .reasons p { grid-template-columns: 40px 1fr; }
+  .ai-detail .reasons i { display: none; }
+}

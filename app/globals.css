@@ -1,0 +1,215 @@
+/* JetBrains Mono v2.304 (ресми GitHub нұсқасы, қазақ әріптерімен). Лицензия: /fonts/OFL-JetBrainsMono.txt */
+@font-face {
+  font-family: "JetBrains Mono KZ";
+  src: url("/fonts/jetbrains-mono-2.304-kz.woff2") format("woff2");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+:root {
+  --ground: #070b10;
+  --panel: #0e1620;
+  --panel-2: #111b26;
+  --hairline: #1a2632;
+  --hairline-soft: #131d27;
+  --text: #dce7ef;
+  --title: #f2f8fc;
+  --muted: #6e869b;
+  --dim: #41566a;
+  --accent: #34e0c4;
+  --warn: #f2a93b;
+  --violet: #9b7bff;
+  --err: #ff5c7a;
+  --mono: "JetBrains Mono KZ", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --pad: clamp(18px, 3.4vw, 56px);
+}
+* { box-sizing: border-box; }
+html { background: var(--ground); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p, dl, dd, figure { margin: 0; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; border: 0; background: 0; cursor: pointer; color: inherit; }
+[hidden] { display: none !important; }
+::selection { background: rgba(52, 224, 196, 0.22); color: var(--title); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+/* ---------- ортақ элементтер ---------- */
+.kicker {
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 18px;
+}
+.kicker::before { content: "// "; color: var(--dim); }
+.h1 { font-size: clamp(24px, 4.2vw, 38px); font-weight: 700; letter-spacing: -0.035em; color: var(--title); }
+.h2 { font-size: clamp(18px, 2.4vw, 24px); font-weight: 600; letter-spacing: -0.025em; color: var(--title); }
+.tiny { font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); }
+.muted { color: var(--muted); }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 var(--pad); }
+
+.card {
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  background: rgba(10, 16, 23, 0.6);
+  overflow: hidden;
+}
+.card-head {
+  padding: 11px 18px;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--hairline);
+  font-size: 11px; letter-spacing: 0.06em; color: var(--dim);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.card-body { padding: 18px; }
+
+label { display: block; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+input, textarea, select {
+  width: 100%; min-height: 46px; padding: 11px 14px;
+  border-radius: 10px; border: 1px solid var(--hairline);
+  background: rgba(6, 10, 15, 0.66); color: var(--text);
+  font-family: var(--mono); font-size: 15px; outline: none;
+  transition: border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+textarea { min-height: 120px; line-height: 1.6; resize: vertical; }
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px rgba(52, 224, 196, 0.1);
+}
+input::placeholder, textarea::placeholder { color: var(--dim); }
+.field { margin-bottom: 16px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+@media (max-width: 680px) { .row2, .row3 { grid-template-columns: 1fr; } }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  min-height: 46px; padding: 0 22px; border-radius: 10px;
+  background: var(--accent); color: #04120f;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  transition: background 0.28s var(--ease), box-shadow 0.28s var(--ease), transform 0.18s var(--ease);
+}
+.btn:hover { background: #5bebd4; box-shadow: 0 0 34px -6px rgba(52, 224, 196, 0.55); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; transform: none; }
+.btn-ghost {
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--hairline);
+}
+.btn-ghost:hover { background: rgba(52, 224, 196, 0.08); color: var(--text); border-color: var(--accent); box-shadow: none; }
+.btn-danger { background: transparent; color: var(--err); border: 1px solid rgba(255, 92, 122, 0.35); }
+.btn-danger:hover { background: rgba(255, 92, 122, 0.1); box-shadow: none; color: var(--err); }
+.btn-sm { min-height: 36px; padding: 0 14px; font-size: 11px; }
+
+.msg { margin-top: 12px; min-height: 20px; font-size: 13px; color: var(--accent); }
+.msg.err { color: var(--err); }
+
+/* ---------- кіру / тіркелу ---------- */
+select { color-scheme: dark; cursor: pointer; }
+input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--err); box-shadow: 0 0 0 3px rgba(255, 92, 122, 0.1); }
+.auth .card-head { padding: 6px 8px 6px 6px; }
+.auth .row2 { row-gap: 0; }
+.auth-tabs { display: flex; gap: 4px; }
+.auth-tabs button {
+  min-height: 34px; padding: 0 14px; border-radius: 8px;
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+  transition: background 0.24s var(--ease), color 0.24s var(--ease);
+}
+.auth-tabs button:hover { color: var(--text); }
+.auth-tabs button.on { background: rgba(52, 224, 196, 0.1); color: var(--accent); box-shadow: inset 0 0 0 1px rgba(52, 224, 196, 0.35); }
+.auth-file { font-size: 11px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 420px) { .auth-file { display: none; } }
+label .opt { color: var(--dim); text-transform: none; letter-spacing: 0.02em; }
+.hint { margin-top: 8px; min-height: 16px; font-size: 10.5px; letter-spacing: 0.04em; color: var(--accent); }
+.hint.muted-hint { color: var(--dim); min-height: 0; }
+.link { color: var(--muted); text-transform: inherit; letter-spacing: inherit; font-size: inherit; padding: 2px 0; border-bottom: 1px dashed var(--hairline); transition: color 0.24s var(--ease), border-color 0.24s var(--ease); }
+.link:hover { color: var(--accent); border-color: var(--accent); }
+.auth-foot { margin-top: 16px; }
+.ok-line { color: var(--title); line-height: 1.6; word-break: break-word; }
+.ok-line b { font-weight: 500; color: var(--accent); }
+.ok { color: var(--accent); display: inline-block; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid var(--hairline); border-radius: 999px;
+  padding: 4px 11px; font-size: 10.5px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted);
+}
+.pill.draft { color: var(--dim); }
+.pill.published { color: var(--accent); border-color: rgba(52, 224, 196, 0.35); }
+.pill.running { color: var(--warn); border-color: rgba(242, 169, 59, 0.35); }
+.pill.finished { color: var(--muted); }
+
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.between { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+code, .code { font-family: var(--mono); }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ============================================================
+   АНИМАЦИЯ · ортақ утилиталар («debug» стилі)
+   Тек transform/opacity; бір реттік эффектілер; «reduce motion» — өшеді.
+   ============================================================ */
+@media (prefers-reduced-motion: no-preference) {
+  /* бет элементтері біртіндеп шығады: <div class="enter" style="--d:2"> */
+  .enter { animation: enter 0.65s var(--ease) both; animation-delay: calc(var(--d, 0) * 80ms); }
+  @keyframes enter {
+    from { opacity: 0; transform: translateY(16px); }
+  }
+  /* қате — қысқа «шайқалу» */
+  .shake { animation: shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) 1; }
+  @keyframes shake {
+    10%, 90% { transform: translateX(-1px); }
+    20%, 80% { transform: translateX(3px); }
+    30%, 50%, 70% { transform: translateX(-5px); }
+    40%, 60% { transform: translateX(5px); }
+  }
+  /* белгі «секіреді» */
+  .pop { animation: pop 0.5s var(--ease) 1; }
+  @keyframes pop {
+    0% { transform: scale(0.4); opacity: 0; }
+    60% { transform: scale(1.18); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  /* батырма «жүктелуде» — астында жүгіретін жолақ */
+  .btn.is-busy { position: relative; overflow: hidden; }
+  .btn.is-busy::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(4, 18, 15, 0.55), transparent);
+    transform: translateX(-100%);
+    animation: busy 1.1s var(--ease) infinite;
+  }
+  @keyframes busy { to { transform: translateX(100%); } }
+}
+
+/* hover — тек тінтуірі бар құрылғыларда: батырма бойымен жарқыл өтеді */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .btn:not(.btn-ghost):not(.btn-danger) { position: relative; overflow: hidden; }
+  .btn:not(.btn-ghost):not(.btn-danger)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 32%, rgba(255, 255, 255, 0.45) 50%, transparent 68%);
+    transform: translateX(-130%);
+    pointer-events: none;
+  }
+  .btn:not(.btn-ghost):not(.btn-danger):hover:not(:disabled)::after { transform: translateX(130%); transition: transform 0.75s var(--ease); }
+  .card { transition: border-color 0.3s var(--ease); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

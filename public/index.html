@@ -1,0 +1,2495 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>DEBUG 2026 · Студенттер</title>
+<meta name="description" content="DEBUG — студенттерге арналған онлайн кодинг жарысы: Trace, Debug, Build." />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<!-- JetBrains Mono v2.304 (ресми GitHub нұсқасы): Google Fonts-тағы нұсқада Ә Ғ Қ Ң Ұ Һ жоқ.
+     Бір variable файл — барлық салмақ (100–800), латын + кирилл + қазақ, 70 КБ. Лицензия: /fonts/OFL-JetBrainsMono.txt -->
+<link rel="preload" href="/fonts/jetbrains-mono-2.304-kz.woff2" as="font" type="font/woff2" crossorigin />
+<style>
+  @font-face {
+    font-family: "JetBrains Mono KZ";
+    src: url("/fonts/jetbrains-mono-2.304-kz.woff2") format("woff2");
+    font-weight: 100 800;
+    font-style: normal;
+    font-display: swap;
+  }
+</style>
+
+<style>
+  /* IBM Plex Sans 400 — тек түсіндірме мәтіндер үшін (лид абзац, тақырып астындағы нота).
+     Өзімізде сақталады; қазақ әріптері (Ә Ғ Қ Ң Ө Ұ Ү Һ І) cyrillic-ext файлында. Лицензия: /fonts/OFL-IBMPlexSans.txt */
+  @font-face {
+    font-family: "IBM Plex Sans";
+    src: url("/fonts/ibm-plex-sans-cyrillic-ext-400.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+  }
+  @font-face {
+    font-family: "IBM Plex Sans";
+    src: url("/fonts/ibm-plex-sans-cyrillic-400.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+  }
+  @font-face {
+    font-family: "IBM Plex Sans";
+    src: url("/fonts/ibm-plex-sans-latin-400.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+      U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+
+  :root {
+    --ground: #070b10;
+    --panel: #0e1620;
+    --panel-2: #111b26;
+    --hairline: #1a2632;
+    --hairline-soft: #131d27;
+    --text: #dce7ef;
+    --title: #f2f8fc;
+    --muted: #6e869b;
+    --dim: #41566a;
+    --accent: #34e0c4;
+    --warn: #f2a93b;
+    --violet: #9b7bff;
+    --err: #ff5c7a;
+    --mono:
+      "JetBrains Mono KZ", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: "IBM Plex Sans", "Noto Sans", system-ui, -apple-system,
+      sans-serif;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --pad: clamp(20px, 5.5vw, 72px);
+    --rail: clamp(0px, calc((100vw - 900px) * 999), 58px);
+    --mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 168 30' width='168' height='30'%3E%3Cpath d='M0 0H15A9 9 0 0 1 24 9V21A9 9 0 0 1 15 30H0ZM6 6V24H15A3 3 0 0 0 18 21V9A3 3 0 0 0 15 6ZM30 0H54V6H36V12H48V18H36V24H54V30H30ZM60 0H75A6 6 0 0 1 81 6V12A6 6 0 0 1 75 18H60ZM60 12H75A9 9 0 0 1 75 30H60ZM66 6V12H75V6ZM66 18V24H75A3 3 0 0 0 75 18ZM90 0H96V21A3 3 0 0 0 99 24H105A3 3 0 0 0 108 21V0H114V21A9 9 0 0 1 105 30H99A9 9 0 0 1 90 21ZM129 0H144V6H129A3 3 0 0 0 126 9V21A3 3 0 0 0 129 24H135A3 3 0 0 0 138 21V18H132V12H144V21A9 9 0 0 1 135 30H129A9 9 0 0 1 120 21V9A9 9 0 0 1 129 0ZM150 24H168V30H150Z' fill='%23fff'/%3E%3C/svg%3E");
+  }
+  html {
+    background: var(--ground);
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  h1,
+  h2,
+  p,
+  dl,
+  dd,
+  dt,
+  figure {
+    margin: 0;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  button {
+    font: inherit;
+    border: 0;
+    background: 0;
+    cursor: pointer;
+  }
+  ::selection {
+    background: rgba(52, 224, 196, 0.22);
+    color: var(--title);
+  }
+  /* `hidden` атрибуты .done/.form display ережелерінен күшті болуы керек */
+  [hidden] {
+    display: none !important;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  @keyframes blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes g1 {
+    0%,
+    87.9% {
+      clip-path: inset(100% 0 0 0);
+    }
+    88%,
+    89% {
+      clip-path: inset(14% 0 62% 0);
+    }
+    89.1%,
+    92% {
+      clip-path: inset(100% 0 0 0);
+    }
+    92.1%,
+    93% {
+      clip-path: inset(56% 0 26% 0);
+    }
+    93.1%,
+    96% {
+      clip-path: inset(100% 0 0 0);
+    }
+    96.1%,
+    96.9% {
+      clip-path: inset(32% 0 44% 0);
+    }
+    97%,
+    100% {
+      clip-path: inset(100% 0 0 0);
+    }
+  }
+  @keyframes g2 {
+    0%,
+    88.4% {
+      clip-path: inset(100% 0 0 0);
+    }
+    88.5%,
+    89.4% {
+      clip-path: inset(48% 0 34% 0);
+    }
+    89.5%,
+    92.4% {
+      clip-path: inset(100% 0 0 0);
+    }
+    92.5%,
+    93.4% {
+      clip-path: inset(18% 0 66% 0);
+    }
+    93.5%,
+    96.4% {
+      clip-path: inset(100% 0 0 0);
+    }
+    96.5%,
+    97.3% {
+      clip-path: inset(66% 0 18% 0);
+    }
+    97.4%,
+    100% {
+      clip-path: inset(100% 0 0 0);
+    }
+  }
+  @keyframes drift {
+    0% {
+      transform: scaleY(0.35);
+      transform-origin: top;
+    }
+    49.9% {
+      transform: scaleY(1);
+      transform-origin: top;
+    }
+    50% {
+      transform: scaleY(1);
+      transform-origin: bottom;
+    }
+    100% {
+      transform: scaleY(0.35);
+      transform-origin: bottom;
+    }
+  }
+  @keyframes pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(52, 224, 196, 0.5);
+    }
+    60% {
+      box-shadow: 0 0 0 7px rgba(52, 224, 196, 0);
+    }
+  }
+  @keyframes typing {
+    from {
+      width: 0;
+    }
+    to {
+      width: var(--ch, 30ch);
+    }
+  }
+
+  /* ---------- atmosphere ---------- */
+  .ground {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        120% 70% at 50% -6%,
+        rgba(52, 224, 196, 0.1),
+        transparent 58%
+      ),
+      radial-gradient(
+        90% 60% at 88% 108%,
+        rgba(155, 123, 255, 0.07),
+        transparent 62%
+      ),
+      linear-gradient(#0b1219, #080e15 34%, #070b10 72%, #05080c);
+  }
+  .ground::after {
+    content: "";
+    position: absolute;
+    inset: -20%;
+    filter: blur(52px);
+    background: linear-gradient(
+      118deg,
+      transparent 34%,
+      rgba(52, 224, 196, 0.09) 46%,
+      rgba(155, 123, 255, 0.05) 54%,
+      transparent 66%
+    );
+  }
+  #rain {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.24;
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      transparent,
+      #000 16%,
+      #000 78%,
+      transparent
+    );
+    mask-image: linear-gradient(
+      180deg,
+      transparent,
+      #000 16%,
+      #000 78%,
+      transparent
+    );
+  }
+  .scan {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0.014;
+    background: repeating-linear-gradient(
+      180deg,
+      #fff 0 1px,
+      transparent 1px 3px
+    );
+  }
+  .grain {
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0.05;
+        background-size: 140px 140px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- rails ---------- */
+  .gutter {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: var(--rail);
+    overflow: hidden;
+    z-index: 4;
+    pointer-events: none;
+    border-right: 1px solid var(--hairline-soft);
+    background: linear-gradient(
+      90deg,
+      rgba(6, 10, 15, 0.72),
+      rgba(6, 10, 15, 0)
+    );
+  }
+  .gutter-nums {
+    position: absolute;
+    inset: 62px 10px 40px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .gutter-nums i {
+    font-style: normal;
+    font-size: 10px;
+    color: var(--dim);
+    opacity: 0.5;
+    font-variant-numeric: tabular-nums;
+  }
+  .bp {
+    position: absolute;
+    right: 22px;
+    top: 8%;
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: var(--err);
+    box-shadow: 0 0 0 3px rgba(255, 92, 122, 0.16);
+  }
+  .rail-right {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: var(--rail);
+    overflow: hidden;
+    z-index: 4;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .rail-right span {
+    writing-mode: vertical-rl;
+    font-size: 10px;
+    letter-spacing: 0.34em;
+    color: var(--dim);
+    white-space: nowrap;
+  }
+
+  /* ---------- topbar ---------- */
+  .topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px var(--pad);
+    background: linear-gradient(
+      180deg,
+      rgba(7, 11, 16, 0.86),
+      rgba(7, 11, 16, 0)
+    );
+      }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .brand svg {
+    display: block;
+    flex: none;
+  }
+  .brand hr {
+    width: 1px;
+    height: 16px;
+    background: var(--hairline);
+    border: 0;
+    flex: none;
+    margin: 0;
+  }
+  .brand b {
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    color: var(--text);
+    white-space: nowrap;
+    font-weight: 400;
+  }
+  .brand b i {
+    font-style: normal;
+    color: var(--dim);
+  }
+  /* Логотиптегі курсор терминалдағыдай жыпылықтайды */
+  .brand .logo-cursor {
+    animation: cursorBlink 1.1s steps(1, end) infinite;
+  }
+  @keyframes cursorBlink {
+    50% {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .brand .logo-cursor {
+      animation: none;
+    }
+  }
+  .chips {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 6px 13px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    background: rgba(14, 22, 32, 0.62);
+    white-space: nowrap;
+  }
+  .chip u {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--accent);
+    position: relative;
+    text-decoration: none;
+  }
+  .chip b {
+    color: var(--text);
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- shared ---------- */
+  .kicker {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 20px;
+  }
+  .kicker::before {
+    content: "// ";
+    color: var(--dim);
+  }
+  .lede {
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.66;
+    color: var(--muted);
+    max-width: 56ch;
+    text-wrap: pretty;
+  }
+  .h2 {
+    font-size: clamp(26px, 6.4vw, 42px);
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    color: var(--text);
+    text-wrap: balance;
+    margin: 0 0 34px;
+  }
+  .sect {
+    position: relative;
+    z-index: 4;
+    padding: clamp(72px, 11vw, 140px) var(--pad) 0
+      calc(var(--rail) + var(--pad) * 0.5);
+  }
+  .wrap {
+    max-width: 1180px;
+  }
+  .tiny {
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  /* ---------- story ---------- */
+  .story {
+    position: relative;
+    z-index: 4;
+    height: 460vh;
+  }
+  .stage {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .act {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    will-change: opacity, transform;
+  }
+  .act-1 {
+    justify-content: flex-end;
+    padding: 0 var(--pad) clamp(64px, 9vh, 104px)
+      calc(var(--rail) + var(--pad) * 0.5);
+  }
+  .act-2 {
+    justify-content: center;
+    padding: 0 var(--pad) 0 calc(var(--rail) + var(--pad) * 0.5);
+    opacity: 0;
+  }
+  .act-3 {
+    align-items: center;
+    justify-content: center;
+    gap: clamp(22px, 4vh, 40px);
+    padding: 74px var(--pad) 40px calc(var(--rail) + var(--pad) * 0.5);
+    opacity: 0;
+  }
+  .act-4 {
+    justify-content: flex-end;
+    gap: clamp(24px, 4vh, 44px);
+    padding: 74px var(--pad) clamp(56px, 8vh, 96px)
+      calc(var(--rail) + var(--pad) * 0.5);
+    opacity: 0;
+  }
+
+  .title {
+    font-size: clamp(66px, 17.5vw, 206px);
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    line-height: 0.86;
+    color: var(--title);
+    position: relative;
+  }
+  .title .g {
+    position: relative;
+    display: inline-block;
+  }
+  .title .g::before,
+  .title .g::after {
+    content: "DEBUG";
+    position: absolute;
+    top: 0;
+    clip-path: inset(100% 0 0 0);
+  }
+  .title .g::before {
+    left: -3px;
+    color: var(--err);
+    animation: g1 8s steps(1) infinite;
+  }
+  .title .g::after {
+    left: 3px;
+    color: var(--accent);
+    animation: g2 8s steps(1) infinite;
+  }
+  .title .c {
+    color: var(--accent);
+    animation: blink 1.15s steps(1) infinite;
+  }
+  .hero-meta {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--dim);
+  }
+  .hint {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: clamp(28px, 5vh, 52px);
+  }
+  .hint u {
+    width: 1px;
+    height: 34px;
+    background: linear-gradient(180deg, var(--accent), transparent);
+    animation: drift 2.8s var(--ease) infinite;
+    text-decoration: none;
+    flex: none;
+  }
+  .hint span {
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--dim);
+    white-space: nowrap;
+  }
+
+  .statement {
+    max-width: 17ch;
+    font-size: clamp(30px, 7.4vw, 66px);
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    line-height: 1.08;
+    color: var(--text);
+    text-wrap: balance;
+  }
+  .statement s {
+    color: var(--dim);
+    text-decoration-color: var(--err);
+    text-decoration-thickness: 2px;
+  }
+  .statement em {
+    color: var(--accent);
+    font-style: normal;
+  }
+
+  /* ---------- logo episode ---------- */
+  .logo-box {
+    position: relative;
+    width: min(860px, 74vw);
+    aspect-ratio: 168 / 30;
+  }
+  .logo-ghost {
+    position: absolute;
+    inset: 0;
+    background: rgba(52, 224, 196, 0.055);
+    -webkit-mask-image: var(--mask);
+    mask-image: var(--mask);
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+  }
+  .logo-scaffold {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+  }
+  .logo-scaffold span {
+    position: absolute;
+    border: 1px solid var(--hairline-soft);
+  }
+  .logo-cells {
+    position: absolute;
+    inset: 0;
+    --p: 0;
+    -webkit-mask-image: var(--mask);
+    mask-image: var(--mask);
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+  }
+  .logo-cells span {
+    position: absolute;
+    opacity: calc((var(--p) - var(--t)) * 9);
+    transform: scale(calc(0.3 + 0.65 * clamp(0, (var(--p) - var(--t)) * 9, 1)));
+  }
+  .logo-head {
+    position: absolute;
+    left: -4%;
+    width: 108%;
+    height: 1px;
+    top: 0;
+    opacity: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--accent) 22%,
+      var(--accent) 78%,
+      transparent
+    );
+    box-shadow: 0 0 18px rgba(52, 224, 196, 0.45);
+  }
+  .build {
+    width: min(860px, 74vw);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .build-cmd {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 13.5px;
+    line-height: 1.85;
+    flex-wrap: wrap;
+  }
+  .build-cmd .p {
+    color: var(--accent);
+  }
+  .build-cmd .m {
+    color: var(--muted);
+  }
+  .build-cmd .f {
+    color: var(--violet);
+  }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .bar {
+    position: relative;
+    flex: 1;
+    height: 6px;
+    background: var(--panel-2);
+    border: 1px solid var(--hairline);
+    overflow: hidden;
+  }
+  .bar i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--accent) 0 6px,
+      transparent 6px 10px
+    );
+  }
+  .pct {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    min-width: 4ch;
+    text-align: right;
+  }
+  .build-status {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .build-status p {
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+  .build-status .byte {
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- countdown / panel ---------- */
+  .countdown {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--hairline);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .cd {
+    background: var(--panel);
+    padding: 15px 8px 12px;
+    text-align: center;
+  }
+  .cd b {
+    display: block;
+    font-size: clamp(26px, 6vw, 34px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--warn);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .cd span {
+    display: block;
+    margin-top: 8px;
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .panel {
+    border: 1px solid var(--hairline);
+    border-radius: 18px;
+    background: rgba(14, 22, 32, 0.86);
+    box-shadow: inset 0 1px rgba(52, 224, 196, 0.1);
+    padding: 26px 24px 24px;
+    max-width: 560px;
+  }
+  .panel h2 {
+    font-size: clamp(24px, 6vw, 34px);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: var(--text);
+  }
+  .panel .lede {
+    margin-top: 14px;
+  }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    flex-wrap: wrap;
+    margin-top: 22px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    padding: 0 26px;
+    border-radius: 11px;
+    background: var(--accent);
+    color: #04120f;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition:
+      background 0.28s var(--ease),
+      box-shadow 0.28s var(--ease),
+      transform 0.18s var(--ease);
+  }
+  .btn:hover {
+    background: #5bebd4;
+    box-shadow: 0 0 34px -6px rgba(52, 224, 196, 0.55);
+  }
+  .btn:active {
+    transform: translateY(1px);
+  }
+  .btn:disabled {
+    opacity: 0.28;
+    cursor: progress;
+    box-shadow: none;
+    transform: none;
+  }
+  .ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--hairline);
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition:
+      gap 0.24s var(--ease),
+      border-color 0.24s var(--ease),
+      color 0.24s var(--ease);
+  }
+  .ghost:hover {
+    gap: 15px;
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  /* ---------- terminal ---------- */
+  .term {
+    max-width: 620px;
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    overflow: hidden;
+    background: rgba(10, 16, 23, 0.92);
+    box-shadow: 0 40px 90px -50px #000;
+  }
+  .term-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .term-bar u {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    display: block;
+    text-decoration: none;
+    flex: none;
+  }
+  .term-bar span {
+    margin-left: 8px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--dim);
+  }
+  .term-body {
+    padding: 20px 20px 22px;
+  }
+  .cmd {
+    --ch: 34ch;
+    overflow: hidden;
+    white-space: nowrap;
+    animation: typing 1.1s steps(34, end) both;
+    font-size: 13.5px;
+    line-height: 1.85;
+  }
+  .cmd .p {
+    color: var(--accent);
+  }
+  .cmd .f {
+    color: var(--violet);
+  }
+  .said {
+    margin-top: 2px;
+    font-size: 13.5px;
+    line-height: 1.85;
+    color: var(--muted);
+  }
+  .said i {
+    font-style: normal;
+    color: var(--dim);
+  }
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  label {
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  input {
+    min-height: 54px;
+    padding: 0 16px;
+    border-radius: 11px;
+    border: 1px solid var(--hairline);
+    background: rgba(6, 10, 15, 0.66);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 16px;
+    outline: none;
+    transition:
+      border-color 0.3s var(--ease),
+      box-shadow 0.3s var(--ease);
+  }
+  input::placeholder {
+    color: var(--dim);
+  }
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(52, 224, 196, 0.1);
+  }
+  input.bad {
+    border-color: var(--err);
+  }
+  form .btn {
+    margin-top: 6px;
+  }
+  .msg {
+    margin-top: 14px;
+    min-height: 20px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--accent);
+  }
+  .msg.err {
+    color: var(--err);
+  }
+  .done {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 22px;
+    font-size: 13.5px;
+    line-height: 1.85;
+  }
+  .done p {
+    color: var(--text);
+  }
+  .done p.m {
+    color: var(--muted);
+  }
+  .done .ok {
+    color: var(--accent);
+  }
+  .done .no {
+    color: var(--warn);
+    font-variant-numeric: tabular-nums;
+  }
+  .done .ghost {
+    align-self: flex-start;
+    margin-top: 8px;
+  }
+  .mode-note {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--hairline-soft);
+  }
+
+  /* ---------- roster ---------- */
+  .big-row {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+  }
+  .big {
+    font-size: clamp(44px, 11vw, 86px);
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    line-height: 0.9;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .roster {
+    max-width: 620px;
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    overflow: hidden;
+    background: rgba(10, 16, 23, 0.6);
+  }
+  .roster-list {
+    height: 302px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--hairline) transparent;
+  }
+  .roster-list::-webkit-scrollbar {
+    width: 6px;
+  }
+  .roster-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .roster-list::-webkit-scrollbar-thumb {
+    background: var(--hairline);
+    border-radius: 999px;
+  }
+  .r-row {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 9px 20px;
+    border-bottom: 1px solid var(--hairline-soft);
+  }
+  .r-row .no {
+    min-width: 52px;
+    font-size: 11.5px;
+    color: var(--dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .r-row .nm {
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+  .r-row.mine {
+    background: rgba(52, 224, 196, 0.07);
+  }
+  .r-row.mine .nm {
+    color: var(--accent);
+  }
+  .r-empty {
+    padding: 22px 20px;
+    font-size: 13.5px;
+    color: var(--dim);
+  }
+  .roster-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--hairline);
+    background: var(--panel);
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  /* ---------- config panels ---------- */
+  .cfg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(288px, 1fr));
+    gap: 18px;
+  }
+  .cfg {
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    background: rgba(10, 16, 23, 0.6);
+    overflow: hidden;
+  }
+  .cfg-head {
+    padding: 11px 18px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--hairline);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--dim);
+  }
+  .cfg-body {
+    padding: 16px 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13.5px;
+    line-height: 1.85;
+  }
+  .cfg-body .rem {
+    color: var(--dim);
+    margin-bottom: 6px;
+  }
+  .cfg-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .cfg-row .k {
+    min-width: 12ch;
+    color: var(--muted);
+  }
+  .cfg-row .eq {
+    color: var(--violet);
+  }
+  .cfg-row .v {
+    color: var(--text);
+  }
+
+  /* ---------- prizes ---------- */
+  .prizes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1px;
+    background: var(--hairline);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .prize {
+    background: var(--panel);
+    padding: 24px 22px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .prize .rank {
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .prize .ttl {
+    font-size: 19px;
+    color: var(--text);
+  }
+  .prize .note {
+    font-family: var(--sans);
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--dim);
+  }
+
+  /* ---------- facts ---------- */
+  .dl {
+    border-top: 1px solid var(--hairline);
+    max-width: 900px;
+  }
+  .dl-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    padding: 22px 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .dl-row dt {
+    flex: 0 0 220px;
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding-top: 4px;
+  }
+  .dl-row dd {
+    flex: 1 1 300px;
+  }
+  .dl-row dd b {
+    display: block;
+    font-size: 17px;
+    color: var(--text);
+    font-weight: 400;
+  }
+  .dl-row dd small {
+    display: block;
+    margin-top: 6px;
+    font-family: var(--sans);
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--dim);
+  }
+
+  /* ---------- footer ---------- */
+  .foot {
+    position: relative;
+    z-index: 4;
+    margin-top: clamp(72px, 11vw, 140px);
+    padding: 26px var(--pad) 30px calc(var(--rail) + var(--pad) * 0.5);
+    border-top: 1px solid var(--hairline-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .foot-l {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .foot span {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--dim);
+  }
+
+  /* ================= МОБИЛЬДІ БЕЙІМДЕУ ================= */
+
+  /* iOS мәтінді өз бетінше ұлғайтпасын */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  @media (max-width: 720px) {
+    /* topbar — «СТУДЕНТТЕР 2026» жазуы чиптермен қабаттаспауы үшін */
+    .topbar {
+      padding: 12px var(--pad);
+      gap: 10px;
+    }
+    .brand {
+      gap: 9px;
+      flex: 0 1 auto;
+      overflow: hidden;
+    }
+    .brand svg {
+      width: 84px;
+      height: 15px;
+    }
+    .brand b {
+      font-size: 10px;
+      letter-spacing: 0.12em;
+    }
+    .chips {
+      flex: none;
+    }
+    .chip {
+      padding: 5px 11px;
+      font-size: 10px;
+    }
+    #dateChip {
+      display: none;
+    }
+
+    /* сахна — iOS Safari панелі ашылып-жабылғанда қуыс қалмасын */
+    .story {
+      height: 320vh;
+    }
+    .stage {
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    /* акттар: тығызырақ + safe-area */
+    .act-1 {
+      padding-bottom: calc(clamp(48px, 7vh, 88px) + env(safe-area-inset-bottom));
+    }
+    .act-3 {
+      gap: clamp(16px, 3vh, 28px);
+      padding-top: 64px;
+      padding-bottom: calc(26px + env(safe-area-inset-bottom));
+    }
+    .act-4 {
+      gap: clamp(18px, 3vh, 32px);
+      padding-top: 64px;
+      padding-bottom: calc(clamp(40px, 6vh, 72px) + env(safe-area-inset-bottom));
+    }
+
+    .kicker {
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      margin-bottom: 16px;
+      text-wrap: pretty;
+    }
+    .title {
+      font-size: clamp(54px, 17vw, 206px);
+    }
+    .lede {
+      font-size: 16px;
+    }
+
+    /* логотип эпизоды — экранның кеңірек бөлігін алсын */
+    .logo-box,
+    .build {
+      width: min(860px, 88vw);
+    }
+    .build-cmd,
+    .build-status p {
+      font-size: 12.5px;
+    }
+
+    /* панель / терминал */
+    .panel {
+      padding: 22px 18px 20px;
+    }
+    .term-body {
+      padding: 18px 16px 20px;
+    }
+    .cmd {
+      font-size: 12px;
+    }
+    .said {
+      font-size: 12.5px;
+    }
+
+    .roster-list {
+      height: 260px;
+    }
+    .r-row {
+      padding: 9px 16px;
+    }
+    .roster-foot {
+      padding: 11px 16px;
+    }
+
+    /* ақпарат кестесі — жапсырма мәннің үстінде тұрсын */
+    .dl-row {
+      gap: 6px;
+      padding: 18px 0;
+    }
+    .dl-row dt,
+    .dl-row dd {
+      flex: 0 0 100%;
+    }
+
+    /* саусаққа ыңғайлы тию аймағы */
+    .ghost {
+      min-height: 44px;
+    }
+
+    .foot {
+      padding-bottom: calc(30px + env(safe-area-inset-bottom));
+    }
+  }
+
+  /* көлденең ұсталған телефон */
+  @media (max-height: 560px) and (orientation: landscape) {
+    .title {
+      font-size: clamp(40px, 13vh, 96px);
+    }
+    .act-3 {
+      gap: 12px;
+      padding-top: 54px;
+    }
+    .logo-box,
+    .build {
+      width: min(620px, 64vw);
+    }
+    .act-3 .lede {
+      display: none;
+    }
+    .act-1 .lede {
+      margin-top: 14px;
+    }
+    .hint {
+      margin-top: 16px;
+    }
+  }
+
+
+  /* ============================================================
+     АНИМАЦИЯ · «debug» стилі
+     Ереже: тек transform/opacity (кейде бір реттік clip-path/text-shadow),
+     экраннан тыс тоқтайды, телефонда жеңілдейді, «reduce motion» — өшеді.
+     ============================================================ */
+  .chip u::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--accent);
+    animation: ping 2.6s var(--ease) infinite;
+  }
+  @keyframes ping {
+    0% { transform: scale(1); opacity: 0.55; }
+    70%, 100% { transform: scale(2.8); opacity: 0; }
+  }
+  /* Hero сахнасы экраннан кеткенде оның шексіз анимациялары тоқтайды */
+  .story-off .stage *,
+  .story-off .stage *::before,
+  .story-off .stage *::after {
+    animation-play-state: paused !important;
+  }
+  .logo-head { will-change: transform; }
+  .bar i { width: 100%; clip-path: inset(0 100% 0 0); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    /* бөлімдер біртіндеп шығады (JS .anim класын қосқанда ғана — JS болмаса бәрі көрінеді) */
+    .anim [data-rv] {
+      opacity: 0;
+      transform: translateY(18px);
+      transition:
+        opacity 0.7s var(--ease) calc(var(--d, 0) * 70ms),
+        transform 0.7s var(--ease) calc(var(--d, 0) * 70ms);
+    }
+    .anim [data-rv].in { opacity: 1; transform: none; }
+
+    /* тақырыптың бір реттік «glitch»-і */
+    .h2.gl { animation: h-glitch 0.46s steps(1, end) 1; }
+    @keyframes h-glitch {
+      0% { text-shadow: 3px 0 rgba(255, 92, 122, 0.75), -3px 0 rgba(52, 224, 196, 0.75); clip-path: inset(0 0 55% 0); }
+      18% { text-shadow: -2px 0 rgba(255, 92, 122, 0.75), 2px 0 rgba(52, 224, 196, 0.75); clip-path: inset(38% 0 0 0); }
+      36% { text-shadow: 2px 0 rgba(155, 123, 255, 0.7), -1px 0 rgba(52, 224, 196, 0.7); clip-path: inset(12% 0 30% 0); }
+      54% { text-shadow: none; clip-path: none; }
+      72% { text-shadow: -1px 0 rgba(255, 92, 122, 0.6), 1px 0 rgba(52, 224, 196, 0.6); }
+      100% { text-shadow: none; clip-path: none; }
+    }
+
+    /* фактілер: астыңғы сызық «сызылады» */
+    .anim .dl-row { position: relative; border-bottom-color: transparent; }
+    .anim .dl-row::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: -1px;
+      height: 1px;
+      background: linear-gradient(90deg, var(--accent), var(--hairline) 38%);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.9s var(--ease) calc(var(--d, 0) * 70ms + 0.15s);
+    }
+    .anim .dl-row.in::after, .anim .dl-row:not([data-rv])::after { transform: none; }
+
+    /* тізімге жаңа адам қосылса */
+    .r-row.r-new { animation: row-in 0.9s var(--ease) backwards; }
+    @keyframes row-in {
+      from { opacity: 0; transform: translateX(-12px); background: rgba(52, 224, 196, 0.2); }
+    }
+    /* тіркелгенде ✓ «секіреді» */
+    .done:not([hidden]) .ok { display: inline-block; animation: pop 0.55s var(--ease) both; }
+    @keyframes pop {
+      0% { transform: scale(0.2); opacity: 0; }
+      60% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+  }
+
+  /* hover эффектілері — тек тінтуірі бар құрылғыларда */
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .btn { position: relative; overflow: hidden; }
+    .btn::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(105deg, transparent 32%, rgba(255, 255, 255, 0.5) 50%, transparent 68%);
+      transform: translateX(-130%);
+      pointer-events: none;
+    }
+    .btn:hover::after { transform: translateX(130%); transition: transform 0.75s var(--ease); }
+    .prize { position: relative; transition: background 0.3s var(--ease); }
+    .prize::before {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--violet));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.45s var(--ease);
+    }
+    .prize:hover { background: #111d29; }
+    .prize:hover::before { transform: none; }
+    .cfg, .term { transition: border-color 0.3s var(--ease), box-shadow 0.3s var(--ease); }
+    .cfg:hover, .term:hover { border-color: rgba(52, 224, 196, 0.35); }
+    .dl-row dt { transition: color 0.25s var(--ease), transform 0.25s var(--ease); }
+    .dl-row:hover dt { color: var(--accent); transform: translateX(4px); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  /* «Кіру · Тіркелу» батырмасы */
+  .chip-login {
+    color: var(--accent);
+    border-color: rgba(52, 224, 196, 0.35);
+    text-decoration: none;
+    transition: background 0.24s var(--ease), border-color 0.24s var(--ease);
+  }
+  .chip-login:hover {
+    background: rgba(52, 224, 196, 0.1);
+    border-color: var(--accent);
+  }
+  .chip-login-short {
+    display: none;
+  }
+  @media (max-width: 720px) {
+    .chip-login-full {
+      display: none;
+    }
+    .chip-login-short {
+      display: inline;
+    }
+  }
+
+  /* Мобильде бренд жазуы кесіліп қалмасын («СТУДЕНТТЕР 20…») */
+  @media (max-width: 720px) {
+    .brand b i {
+      display: none;
+    }
+  }
+  /* Тар экранда логотиптің өзі жеткілікті (ол DEBUG деп тұр) — жазу чиптерге орын береді */
+  @media (max-width: 480px) {
+    .brand hr,
+    .brand b {
+      display: none;
+    }
+  }
+</style>
+
+<div class="ground" aria-hidden="true"></div>
+<canvas id="rain" aria-hidden="true"></canvas>
+<div class="scan" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<div class="gutter" aria-hidden="true">
+  <div class="gutter-nums" id="gutterNums"></div>
+  <span class="bp" id="bp"></span>
+</div>
+<div class="rail-right" aria-hidden="true">
+  <span id="railText">DEBUG</span>
+</div>
+
+<header class="topbar">
+  <a class="brand" href="#top">
+    <svg
+      class="logo"
+      viewBox="0 0 168 30"
+      width="101"
+      height="18"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path d="M0 0H15A9 9 0 0 1 24 9V21A9 9 0 0 1 15 30H0ZM6 6V24H15A3 3 0 0 0 18 21V9A3 3 0 0 0 15 6ZM30 0H54V6H36V12H48V18H36V24H54V30H30ZM60 0H75A6 6 0 0 1 81 6V12A6 6 0 0 1 75 18H60ZM60 12H75A9 9 0 0 1 75 30H60ZM66 6V12H75V6ZM66 18V24H75A3 3 0 0 0 75 18ZM90 0H96V21A3 3 0 0 0 99 24H105A3 3 0 0 0 108 21V0H114V21A9 9 0 0 1 105 30H99A9 9 0 0 1 90 21ZM129 0H144V6H129A3 3 0 0 0 126 9V21A3 3 0 0 0 129 24H135A3 3 0 0 0 138 21V18H132V12H144V21A9 9 0 0 1 135 30H129A9 9 0 0 1 120 21V9A9 9 0 0 1 129 0Z" fill="#34E0C4" />
+      <path class="logo-cursor" d="M150 24H168V30H150Z" fill="#34E0C4" />
+    </svg>
+    <hr />
+    <b>СТУДЕНТТЕР <i>2026</i></b>
+  </a>
+  <div class="chips">
+    <span class="chip"
+      ><u aria-hidden="true"></u><b id="liveCount">0</b> тіркелді</span
+    >
+    <span class="chip" id="dateChip">…</span>
+    <a class="chip chip-login" id="chipLogin" href="/login"><span class="chip-login-full" id="chipLoginFull">Кіру · Тіркелу</span><span class="chip-login-short" id="chipLoginShort">Кіру</span></a>
+  </div>
+</header>
+
+<a id="top"></a>
+
+<main>
+  <section class="story" id="story">
+    <div class="stage">
+      <div class="act act-1" id="act1">
+        <p class="kicker">Студенттерге арналған жарыс</p>
+        <h1 class="title">
+          <span class="g">DEBUG</span><span class="c">_</span>
+        </h1>
+        <p class="lede" style="margin-top: 26px">
+          Қате табылған жерде - шешім басталады.
+        </p>
+        <p class="hero-meta" id="heroTitle" style="color: var(--text)"></p>
+        <p class="hero-meta" id="heroMeta" style="margin-top: 4px">тіркелу ашық.</p>
+        <div class="hint">
+          <u aria-hidden="true"></u><span>Төменге жылжыт</span>
+        </div>
+      </div>
+
+      <div class="act act-2" id="act2">
+        <p class="kicker">Мақсат</p>
+        <h2 class="statement">Әр <s>қате</s> — <em>бір ізденіс</em>.</h2>
+        <p class="lede" style="margin-top: 30px">
+          Жарыс алгоритм, логика және таза кодқа құрылған. Тапсырмалар оңайдан
+          күрделіге қарай ашылады, әр шешім бірден автоматты тексеруден өтеді.
+        </p>
+      </div>
+
+      <div class="act act-3" id="act3">
+        <p class="kicker" style="align-self: flex-start">Бренд</p>
+        <div class="logo-box">
+          <div class="logo-ghost" aria-hidden="true"></div>
+          <div class="logo-scaffold" id="scaffold" aria-hidden="true"></div>
+          <div
+            class="logo-cells"
+            id="cells"
+            role="img"
+            aria-label="DEBUG"
+          ></div>
+          <span class="logo-head" id="head" aria-hidden="true"></span>
+        </div>
+        <div class="build">
+          <div class="build-cmd">
+            <span class="p">$</span
+            ><span class="m"
+              >build <span class="f">--target=</span>debug
+              <span class="f">--mode=</span>blocks</span
+            >
+          </div>
+          <div class="bar-row">
+            <span class="bar"><i id="bar"></i></span>
+            <span class="pct" id="pct">0%</span>
+          </div>
+          <div class="build-status">
+            <p id="buildStatus">аллокация…</p>
+            <p class="byte" id="byte">0x0000</p>
+          </div>
+          <p class="lede" style="margin-top: 4px">
+            DEBUG 2026 — студенттерге арналған дәстүрлі бағдарламалау
+            жарысы. Бірақ, осы жылы - жаңашылдықтар көп!
+          </p>
+        </div>
+      </div>
+
+      <div class="act act-4" id="act4">
+        <div style="max-width: 560px">
+          <p class="kicker" id="cdKicker">Басталуына дейін</p>
+          <div class="countdown">
+            <div class="cd"><b id="cdD">00</b><span>күн</span></div>
+            <div class="cd"><b id="cdH">00</b><span>сағ</span></div>
+            <div class="cd"><b id="cdM">00</b><span>мин</span></div>
+            <div class="cd"><b id="cdS">00</b><span>сек</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Тіркелу ашық</h2>
+          <p class="lede">
+            Email-іңмен тіркел — қатысушылар тізіміне бірден қосыласың.
+            Жарыс күні тапсырмалар осы сайтта ашылады.
+          </p>
+          <div class="actions">
+            <a class="btn" id="heroCta" href="/login?tab=register">Тіркелу</a>
+            <a class="ghost" href="#detal"
+              >Толық ақпарат <span aria-hidden="true">→</span></a
+            >
+          </div>
+          <p class="tiny" style="margin-top: 20px">
+            Тіркелу тегін. Email пен құпия сөз жеткілікті.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sect" id="tirkelu">
+    <div class="wrap">
+      <p class="kicker">Тіркелу</p>
+      <h2 class="h2">Email-іңмен тіркел</h2>
+      <div class="term">
+        <div class="term-bar">
+          <u style="background: #ff5c7a"></u><u style="background: #f2a93b"></u
+          ><u style="background: #34e0c4"></u>
+          <span>~/debug/register.sh</span>
+        </div>
+        <div class="term-body">
+          <div class="cmd">
+            <span class="p">$</span> ./register.sh
+            <span class="f">--via=</span>email
+          </div>
+          <p class="said">
+            <i>&gt;</i> Аты-жөніңді, оқу орныңды және email-іңді енгіз —
+            тіркелген соң қатысушылар тізіміне қосыласың.
+          </p>
+
+          <div class="done" id="regGuest">
+            <a class="btn" href="/login?tab=register">Тіркелу</a>
+            <a class="ghost" href="/login"
+              >Тіркелгенмін — кіру <span aria-hidden="true">→</span></a
+            >
+          </div>
+
+          <div class="done" id="done" hidden>
+            <p>
+              <span class="ok">✓</span> тіркелдің: <span id="doneName"></span>
+            </p>
+            <p class="m">
+              <span class="ok">✓</span> жарыс басталғанда тапсырмалар осы
+              сайтта ашылады
+            </p>
+            <a class="btn" href="/contest">Жарыс бетіне өту</a>
+            <a class="ghost" href="#qatysu"
+              >Қатысушылар тізімі <span aria-hidden="true">→</span></a
+            >
+          </div>
+
+          <p class="tiny mode-note" id="modeNote">
+            Құпия сөз ашық күйде еш жерде сақталмайды. Көпшілікке тек «Тегі Аты» көрінеді.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sect" id="qatysu">
+    <div class="wrap">
+      <p class="kicker">Қатысушылар</p>
+      <div class="big-row">
+        <span class="big" id="bigCount">0</span>
+        <span class="tiny">студент тіркелді</span>
+      </div>
+      <div class="roster">
+        <div class="roster-list" id="rosterList">
+          <p class="r-empty" id="rosterEmpty">
+            Тізім жүктелуде…
+          </p>
+        </div>
+        <div class="roster-foot">
+          <span id="rosterMode">registry · …</span>
+          <span style="font-variant-numeric: tabular-nums" id="rosterCount"
+            >0 жазба</span
+          >
+        </div>
+      </div>
+      <a
+        class="ghost"
+        href="/board"
+        style="margin-top: 26px"
+        >Тікелей эфир лидерборды <span aria-hidden="true">→</span></a
+      >
+    </div>
+  </section>
+
+  <section class="sect" id="erezhe">
+    <div class="wrap">
+      <p class="kicker">Ережелер</p>
+      <h2 class="h2">Жарыс конфигурациясы</h2>
+      <div class="cfg-grid">
+        <div class="cfg">
+          <div class="cfg-head">debug-2026.rules</div>
+          <div class="cfg-body">
+            <p class="rem"># негізгі шарттар</p>
+            <div id="rulesBody"></div>
+          </div>
+        </div>
+        <div class="cfg">
+          <div class="cfg-head">debug-2026.scoring</div>
+          <div class="cfg-body">
+            <p class="rem"># бағалау</p>
+            <div id="scoringBody"></div>
+            <p class="tiny" style="margin-top: 10px">
+              Мәндер шартты — нақтыланады.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sect" id="zhulde">
+    <div class="wrap">
+      <p class="kicker">Жүлделер</p>
+      <h2 class="h2">Үздіктерге</h2>
+      <div class="prizes" id="prizes"></div>
+    </div>
+  </section>
+
+  <section class="sect" id="detal">
+    <div class="wrap">
+      <p class="kicker">Ақпарат</p>
+      <h2 class="h2">Жарыс туралы қысқаша</h2>
+      <dl class="dl" id="facts"></dl>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="foot-l">
+    <svg
+      class="logo"
+      viewBox="0 0 168 30"
+      width="84"
+      height="15"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path d="M0 0H15A9 9 0 0 1 24 9V21A9 9 0 0 1 15 30H0ZM6 6V24H15A3 3 0 0 0 18 21V9A3 3 0 0 0 15 6ZM30 0H54V6H36V12H48V18H36V24H54V30H30ZM60 0H75A6 6 0 0 1 81 6V12A6 6 0 0 1 75 18H60ZM60 12H75A9 9 0 0 1 75 30H60ZM66 6V12H75V6ZM66 18V24H75A3 3 0 0 0 75 18ZM90 0H96V21A3 3 0 0 0 99 24H105A3 3 0 0 0 108 21V0H114V21A9 9 0 0 1 105 30H99A9 9 0 0 1 90 21ZM129 0H144V6H129A3 3 0 0 0 126 9V21A3 3 0 0 0 129 24H135A3 3 0 0 0 138 21V18H132V12H144V21A9 9 0 0 1 135 30H129A9 9 0 0 1 120 21V9A9 9 0 0 1 129 0Z" fill="#41566A" />
+      <path class="logo-cursor" d="M150 24H168V30H150Z" fill="#41566A" />
+    </svg>
+    <span>© 2026 DEBUG · онлайн кодинг жарысы</span>
+  </div>
+  <span style="font-variant-numeric: tabular-nums" id="footDate">…</span>
+</footer>
+
+<script>
+  (function () {
+    "use strict";
+
+    /* ============================================================
+   БАПТАУЛАР — өзгертетін жалғыз жер
+   ============================================================ */
+    var CONFIG = {
+      // Жарыстың күні, уақыты және атауы әкімші панеліндегі ағымдағы жарыстан келеді
+      // (/api/public/landing). Қатысушылар тізімі де сол жерден.
+      pollMs: 30000,
+
+      logoCols: 28, // 12…36 (жұп сан) — логотип торының бағаны; 28 болса әр торкөз әріптің бір блогына дәл келеді
+      rainDensity: 44, // 0…100 — код жаңбырындағы белсенді бағандар %
+
+      rules: [
+        { key: "уақыт", val: "1-1,5 сағат" },
+        { key: "тапсырма", val: "Python кодтары" },
+        { key: "тексеру", val: "автоматты" },
+        { key: "тіл", val: "Python" },
+        { key: "көмек", val: "тек өзіңе сен" },
+      ],
+      scoring: [
+        { key: "балл", val: "тапсырма қиындығына сай" },
+        { key: "жаза", val: "көшірмейміз!" },
+        { key: "нәтиже", val: "тікелей эфирде" },
+      ],
+      prizes: [
+        { rank: "1-орын", title: "Бас жүлде", note: "Жарыс алдында жарияланады" },
+        { rank: "2-орын", title: "Екінші орын", note: "Жарыс алдында жарияланады" },
+        { rank: "3-орын", title: "Үшінші орын", note: "Жарыс алдында жарияланады" },
+      ],
+    };
+    /* ========================================================== */
+
+    var RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var $ = function (id) {
+      return document.getElementById(id);
+    };
+    var TARGET = null; // жарыс басталатын сәт (мс); әзірге белгісіз
+    var p2 = function (n) {
+      return String(n).padStart(2, "0");
+    };
+
+    /* ---------- күн-уақыт жазулары ---------- */
+    // Уақыт әрдайым Қазақстан уақытымен (UTC+5) көрсетіледі — кірушінің сағат белдеуіне тәуелсіз.
+    // Intl timeZone қолданбаймыз: ескі телефондарда Алматы әлі UTC+6 деп тұруы мүмкін.
+    function kzParts(ms) {
+      var d = new Date(ms + 5 * 3600 * 1000);
+      return {
+        dd: p2(d.getUTCDate()),
+        mm: p2(d.getUTCMonth() + 1),
+        yy: d.getUTCFullYear(),
+        hhmm: p2(d.getUTCHours()) + ":" + p2(d.getUTCMinutes()),
+      };
+    }
+    var factDate = null; // «күні» жолының мәні — жарыс дерегі келгенде жаңарады
+    function applyContest(c) {
+      var t = c && c.startsAt ? new Date(c.startsAt).getTime() : NaN;
+      if (!c || isNaN(t)) {
+        TARGET = null;
+        $("railText").textContent = "DEBUG // жақында";
+        $("dateChip").textContent = "жақында";
+        $("heroTitle").textContent = "";
+        $("heroMeta").textContent = "Келесі жарыс күні жақында жарияланады · тіркелу ашық.";
+        $("footDate").textContent = "күні жақында";
+        if (factDate) factDate.textContent = "Жақында жарияланады";
+      } else {
+        TARGET = t;
+        var k = kzParts(t);
+        $("railText").textContent = "DEBUG // " + k.dd + "." + k.mm + "." + k.yy;
+        $("dateChip").textContent = k.dd + "." + k.mm + " · " + k.hhmm;
+        $("heroTitle").textContent = c.title || "";
+        $("heroMeta").textContent = k.dd + "." + k.mm + "." + k.yy + " · " + k.hhmm + " · тіркелу ашық.";
+        $("footDate").textContent = k.dd + "." + k.mm + "." + k.yy + " · " + k.hhmm;
+        if (factDate) factDate.textContent = k.dd + "." + k.mm + "." + k.yy + ", " + k.hhmm;
+      }
+      if (typeof tick === "function") tick();
+    }
+    (function () {
+      var facts = [
+        {
+          k: "күні",
+          v: "…",
+          note: "Қазақстан уақыты · UTC+5",
+        },
+        {
+          k: "форматы",
+          v: "Онлайн",
+          note: "Тапсырмалар жарыс күні осы сайтта ашылады",
+        },
+        {
+          k: "кімдер",
+          v: "Студенттер",
+          note: "Дайындық деңгейіне шектеу жоқ",
+        },
+        {
+          k: "тіркелу",
+          v: "Тегін",
+          note: "Email арқылы, осы сайтта",
+        },
+      ];
+      var dl = $("facts");
+      facts.forEach(function (f) {
+        var row = document.createElement("div");
+        row.className = "dl-row";
+        var dt = document.createElement("dt");
+        dt.textContent = f.k;
+        var dd2 = document.createElement("dd");
+        var b = document.createElement("b");
+        b.textContent = f.v;
+        if (f.k === "күні") factDate = b;
+        var s = document.createElement("small");
+        s.textContent = f.note;
+        dd2.appendChild(b);
+        dd2.appendChild(s);
+        row.appendChild(dt);
+        row.appendChild(dd2);
+        dl.appendChild(row);
+      });
+    })();
+
+    /* ---------- config панельдері мен жүлделер ---------- */
+    (function () {
+      function fill(host, rows) {
+        rows.forEach(function (r) {
+          var p = document.createElement("p");
+          p.className = "cfg-row";
+          var k = document.createElement("span");
+          k.className = "k";
+          k.textContent = r.key;
+          var e = document.createElement("span");
+          e.className = "eq";
+          e.textContent = "=";
+          var v = document.createElement("span");
+          v.className = "v";
+          v.textContent = r.val;
+          p.appendChild(k);
+          p.appendChild(e);
+          p.appendChild(v);
+          host.appendChild(p);
+        });
+      }
+      fill($("rulesBody"), CONFIG.rules);
+      fill($("scoringBody"), CONFIG.scoring);
+
+      var host = $("prizes");
+      CONFIG.prizes.forEach(function (pz) {
+        var d = document.createElement("div");
+        d.className = "prize";
+        var a = document.createElement("span");
+        a.className = "rank";
+        a.textContent = pz.rank;
+        var b = document.createElement("span");
+        b.className = "ttl";
+        b.textContent = pz.title;
+        var c = document.createElement("span");
+        c.className = "note";
+        c.textContent = pz.note;
+        d.appendChild(a);
+        d.appendChild(b);
+        d.appendChild(c);
+        host.appendChild(d);
+      });
+    })();
+
+    /* ---------- gutter ---------- */
+    (function () {
+      var g = $("gutterNums"),
+        f = document.createDocumentFragment();
+      for (var i = 1; i <= 26; i++) {
+        var n = document.createElement("i");
+        n.textContent = p2(i);
+        f.appendChild(n);
+      }
+      g.appendChild(f);
+    })();
+
+    /* ---------- логотип торы (детерминирленген LCG) ---------- */
+    var CELLS = (function () {
+      var cols = Math.max(12, Math.min(36, Math.round(CONFIG.logoCols)));
+      var rows = Math.max(4, Math.round((cols * 30) / 168)); // логотиптің пропорциясы 168 × 30
+      var s = 20260905;
+      var rnd = function () {
+        s = (s * 1103515245 + 12345) & 0x7fffffff;
+        return (s % 10000) / 10000;
+      };
+      var out = [];
+      for (var r = 0; r < rows; r++) {
+        for (var c = 0; c < cols; c++) {
+          var base = (r + (c % 2 ? 0.45 : 0)) / rows;
+          var th = Math.min(0.97, base * 0.8 + rnd() * 0.17);
+          var x = rnd();
+          out.push({
+            th: th.toFixed(3),
+            l: ((c * 100) / cols).toFixed(3),
+            t: ((r * 100) / rows).toFixed(3),
+            w: (100 / cols).toFixed(3),
+            h: (100 / rows).toFixed(3),
+            color: x > 0.965 ? "#9B7BFF" : x > 0.935 ? "#F2A93B" : "#34E0C4",
+          });
+        }
+      }
+      return out;
+    })();
+
+    (function () {
+      var sc = $("scaffold"),
+        ce = $("cells");
+      var f1 = document.createDocumentFragment(),
+        f2 = document.createDocumentFragment();
+      CELLS.forEach(function (c) {
+        var box =
+          "left:" +
+          c.l +
+          "%;top:" +
+          c.t +
+          "%;width:" +
+          c.w +
+          "%;height:" +
+          c.h +
+          "%;";
+        var a = document.createElement("span");
+        a.style.cssText = box;
+        f1.appendChild(a);
+        var b = document.createElement("span");
+        b.style.cssText = box + "background:" + c.color + ";--t:" + c.th + ";";
+        f2.appendChild(b);
+      });
+      sc.appendChild(f1);
+      ce.appendChild(f2);
+    })();
+
+    /* ---------- скролл композициясы ---------- */
+    var flashed = false;
+    function glitchLogo() {
+      var el = $("cells");
+      if (!el || RM) return;
+      var seq = [
+        [-4, 0.55],
+        [5, 0.8],
+        [-2, 0.65],
+        [0, 1],
+      ];
+      seq.forEach(function (s, i) {
+        setTimeout(function () {
+          el.style.transform = "translateX(" + s[0] + "px)";
+          el.style.filter =
+            s[1] < 1 ? "brightness(" + (1 + (1 - s[1])) + ")" : "none";
+          if (i === seq.length - 1) {
+            el.style.transform = "none";
+            el.style.filter = "none";
+          }
+        }, i * 55);
+      });
+    }
+
+    var acts = [$("act1"), $("act2"), $("act3"), $("act4")];
+    var st = $("story"), cellsEl = $("cells"), scaffoldEl = $("scaffold"), headEl = $("head"),
+      barEl = $("bar"), pctEl = $("pct"), byteEl = $("byte"), bpEl = $("bp"), statusEl = $("buildStatus");
+    // Геометрия тек resize кезінде оқылады; скролл кадрында тек scrollY → layout қайта есептелмейді
+    var M = { top: 0, span: 1, dh: 1, boxH: 0, gutH: 0 };
+    function measure() {
+      var scEl = document.scrollingElement || document.documentElement;
+      M.top = st ? st.offsetTop : 0;
+      M.span = st ? Math.max(1, st.offsetHeight - window.innerHeight) : 1;
+      M.dh = Math.max(1, scEl.scrollHeight - window.innerHeight);
+      M.boxH = headEl ? headEl.parentNode.offsetHeight : 0;
+      M.gutH = bpEl ? bpEl.parentNode.offsetHeight : 0;
+      if (bpEl) bpEl.style.top = "7%";
+      if (headEl) headEl.style.top = "0";
+      prev = {};
+    }
+    var prev = {};
+    function put(key, val, fn) {
+      if (prev[key] === val) return;
+      prev[key] = val;
+      fn(val);
+    }
+    function paint() {
+      if (!st) return;
+      var sy = window.scrollY || 0;
+      var p = Math.min(1, Math.max(0, (sy - M.top) / M.span));
+      var w = function (a, b) {
+        return Math.min(1, Math.max(0, (p - a) / (b - a)));
+      };
+      var o = [
+        1 - w(0.13, 0.23),
+        Math.min(w(0.25, 0.33), 1 - w(0.42, 0.5)),
+        Math.min(w(0.53, 0.6), 1 - w(0.86, 0.92)),
+        w(0.9, 0.985),
+      ];
+      acts.forEach(function (el, i) {
+        if (!el) return;
+        put("a" + i, o[i].toFixed(3), function (v) {
+          el.style.opacity = v;
+          el.style.transform = "translateY(" + ((1 - v) * 14).toFixed(2) + "px)";
+          el.style.pointerEvents = v > 0.6 ? "auto" : "none";
+        });
+      });
+
+      var q = w(0.575, 0.845);
+      put("q", q.toFixed(4), function (v) {
+        cellsEl.style.setProperty("--p", v);
+        headEl.style.transform = "translateY(" + (q * M.boxH).toFixed(1) + "px)";
+        headEl.style.opacity = q > 0.002 && q < 0.995 ? "0.9" : "0";
+        barEl.style.clipPath = "inset(0 " + ((1 - q) * 100).toFixed(2) + "% 0 0)";
+      });
+      put("pct", Math.round(q * 100), function (v) {
+        pctEl.textContent = v + "%";
+      });
+      put("byte", Math.round(q * 11280), function (v) {
+        byteEl.textContent = "0x" + v.toString(16).toUpperCase().padStart(4, "0");
+      });
+      put("sc", (Math.min(w(0.53, 0.61), 1 - w(0.79, 0.9)) * 0.85).toFixed(3), function (v) {
+        scaffoldEl.style.opacity = v;
+      });
+
+      var n = CELLS.length;
+      var stText = q >= 0.999 ? "✓ жиналды — " + n + " блок" : q > 0.02 ? "блок жазылуда… " + Math.round(q * n) + "/" + n : "аллокация…";
+      put("st", stText, function (v) {
+        statusEl.textContent = v;
+        statusEl.style.color = q >= 0.999 ? "#34E0C4" : "#6E869B";
+      });
+
+      if (q >= 0.999 && !flashed) {
+        flashed = true;
+        glitchLogo();
+      }
+      if (q < 0.9) flashed = false;
+
+      var pg = Math.min(1, Math.max(0, sy / M.dh));
+      put("bp", (pg * 0.86 * M.gutH).toFixed(1), function (v) {
+        bpEl.style.transform = "translateY(" + v + "px)";
+      });
+    }
+    var queued = false;
+    function onScroll() {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(function () {
+        queued = false;
+        paint();
+      });
+    }
+    var rz;
+    addEventListener("scroll", onScroll, { passive: true });
+    addEventListener("resize", function () {
+      clearTimeout(rz);
+      rz = setTimeout(function () {
+        measure();
+        paint();
+      }, 120);
+    }, { passive: true });
+    // Шрифт пен динамикалық блоктар жүктелген соң бет биіктігі өзгереді
+    addEventListener("load", function () {
+      measure();
+      paint();
+    });
+    measure();
+    paint();
+
+    /* ---------- кері санақ ---------- */
+    var lastLive = null;
+    function tick() {
+      var cds = [$("cdD"), $("cdH"), $("cdM"), $("cdS")];
+      if (TARGET === null) {
+        // Жарияланған жарыс жоқ (немесе дерек әлі келмеді)
+        cds.forEach(function (el) {
+          if (el.textContent !== "--") el.textContent = "--";
+          if (el.dataset.c !== "dim") {
+            el.dataset.c = "dim";
+            el.style.color = "#41566A";
+          }
+        });
+        if (lastLive !== "none") {
+          $("cdKicker").textContent = "Келесі жарыс жақында";
+          lastLive = "none";
+        }
+        return;
+      }
+      var diff = TARGET - Date.now();
+      var live = diff <= 0;
+      var s = Math.max(0, Math.floor(diff / 1000));
+      var v = [
+        Math.floor(s / 86400),
+        Math.floor(s / 3600) % 24,
+        Math.floor(s / 60) % 60,
+        s % 60,
+      ];
+      cds.forEach(function (el, i) {
+        var nv = p2(v[i]);
+        if (el.textContent !== nv) {
+          el.textContent = nv;
+          // Web Animations API: reflow-сыз, тек transform/opacity
+          if (!RM && lastLive === live && el.animate)
+            el.animate(
+              [
+                { transform: "translateY(-38%)", opacity: 0.15 },
+                { transform: "none", opacity: 1 },
+              ],
+              { duration: 360, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+            );
+        }
+        var col = live ? "#34E0C4" : "#F2A93B";
+        if (el.dataset.c !== col) {
+          el.dataset.c = col;
+          el.style.color = col;
+        }
+      });
+      if (lastLive !== live) {
+        $("cdKicker").textContent = live
+          ? "Жарыс басталды"
+          : "Басталуына дейін";
+        lastLive = live;
+      }
+    }
+    tick();
+    setInterval(tick, 1000);
+
+    /* ---------- код жаңбыры ---------- */
+    (function () {
+      var cv = $("rain"),
+        ctx = cv.getContext("2d");
+      var chars = "01{}[]()<>;=+-*/!&|?:._#$abcdefxyzλƒ→ӘҒҚҢӨҰҮҺІ".split("");
+      var colW = 17,
+        lineH = 16,
+        cols = 0,
+        y = [],
+        on = [],
+        sp = [];
+      var dens = Math.max(0, Math.min(1, CONFIG.rainDensity / 100));
+      var small = false;
+
+      function setup() {
+        small = innerWidth <= 720;
+        // Телефонда 1x рұқсат және сиректеу: толық экранды canvas-тың ең қымбат жері — пиксель саны
+        var dpr = Math.min(small ? 1 : 1.5, window.devicePixelRatio || 1);
+        cv.width = Math.floor(innerWidth * dpr);
+        cv.height = Math.floor(innerHeight * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.font = '13px "JetBrains Mono KZ", ui-monospace, monospace';
+        cols = Math.ceil(innerWidth / colW) + 1;
+        y = [];
+        on = [];
+        sp = [];
+        for (var i = 0; i < cols; i++) {
+          y.push(Math.random() * innerHeight);
+          on.push(Math.random() < dens * (small ? 0.6 : 1));
+          sp.push(7 + Math.random() * 20);
+        }
+      }
+      function glyph(i, yy) {
+        var r = Math.random();
+        ctx.fillStyle = r > 0.95 ? "#9B7BFF" : r > 0.91 ? "#F2A93B" : "#34E0C4";
+        ctx.fillText(chars[(Math.random() * chars.length) | 0], i * colW, yy);
+      }
+      setup();
+      var rt;
+      addEventListener(
+        "resize",
+        function () {
+          clearTimeout(rt);
+          rt = setTimeout(setup, 180);
+        },
+        { passive: true },
+      );
+
+      if (RM) {
+        for (var i = 0; i < cols; i++) {
+          if (!on[i]) continue;
+          for (var k = 0; k < 14; k++) glyph(i, Math.random() * innerHeight);
+        }
+        return;
+      }
+      var last = performance.now();
+      function frame(t) {
+        requestAnimationFrame(frame);
+        if (t - last < (small ? 50 : 33)) return; // телефонда 20 FPS, компьютерде 30 FPS
+        var dt = Math.min(0.1, (t - last) / 1000);
+        last = t;
+        ctx.fillStyle = "rgba(7,11,16,0.11)";
+        ctx.fillRect(0, 0, innerWidth, innerHeight);
+        for (var i = 0; i < cols; i++) {
+          if (!on[i]) continue;
+          glyph(i, y[i]);
+          y[i] += sp[i] * lineH * dt;
+          if (y[i] > innerHeight + lineH)
+            y[i] = -Math.random() * innerHeight * 0.5;
+        }
+      }
+      requestAnimationFrame(frame);
+    })();
+
+    /* ============================================================
+   ДЕРЕК ҚАБАТЫ — жарыс уақыты/атауы және қатысушылар тізімі
+   Барлығы өз серверімізден: /api/public/landing (кэштелген, кірусіз)
+   және /api/auth/me (студент кіріп тұр ма). Тіркелу мен кіру — /login (email + құпия сөз).
+   ============================================================ */
+    var names = [], // «Тегі Аты», ең жаңасы бірінші
+      total = 0,
+      meName = null,
+      seenNames = null;
+
+    function setMode(m) {
+      $("rosterMode").textContent = m === "live" ? "registry · live" : "registry · offline";
+    }
+
+    function countTo(el, to) {
+      var from = parseInt(el.textContent, 10) || 0;
+      // Бет жасырын тұрса rAF жүрмейді — сан ескі күйінде қалып қоймасын
+      if (RM || from === to || !el.isConnected || document.hidden) {
+        el.textContent = to;
+        return;
+      }
+      var t0 = performance.now(), dur = Math.min(900, 250 + Math.abs(to - from) * 12);
+      (function step(t) {
+        var k = Math.min(1, (t - t0) / dur);
+        k = 1 - Math.pow(1 - k, 3);
+        el.textContent = Math.round(from + (to - from) * k);
+        if (k < 1) requestAnimationFrame(step);
+      })(t0);
+    }
+
+    function render() {
+      countTo($("liveCount"), total);
+      countTo($("bigCount"), total);
+      $("rosterCount").textContent =
+        names.length < total ? "соңғы " + names.length + " / " + total + " жазба" : total + " жазба";
+
+      var host = $("rosterList");
+      host.textContent = "";
+      if (!names.length) {
+        var e = document.createElement("p");
+        e.className = "r-empty";
+        e.textContent = "Тізім бос. Бірінші болып тіркел.";
+        host.appendChild(e);
+      } else {
+        var f = document.createDocumentFragment();
+        var mineMarked = false;
+        for (var i = 0; i < names.length; i++) {
+          var isMine = !mineMarked && meName && names[i] === meName;
+          if (isMine) mineMarked = true;
+          var row = document.createElement("div");
+          row.className =
+            "r-row" + (isMine ? " mine" : "") + (seenNames && !seenNames[names[i]] ? " r-new" : "");
+          var no = document.createElement("span");
+          no.className = "no";
+          no.textContent = "[" + String(total - i).padStart(4, "0") + "]";
+          var nm = document.createElement("span");
+          nm.className = "nm";
+          nm.textContent = names[i];
+          row.appendChild(no);
+          row.appendChild(nm);
+          f.appendChild(row);
+        }
+        host.appendChild(f);
+      }
+      seenNames = {};
+      names.forEach(function (x) {
+        seenNames[x] = 1;
+      });
+    }
+
+    function loadLanding() {
+      // Браузер кэші айналып өтіледі (әйтпесе ескі күн/тізім көрінуі мүмкін); CDN кэші сақталады
+      return fetch("/api/public/landing", { cache: "no-store" })
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (d) {
+          if (!d || !d.ok) throw new Error("landing");
+          applyContest(d.contest);
+          names = (d.students && d.students.names) || [];
+          total = (d.students && d.students.count) || names.length;
+          render();
+          setMode("live");
+        })
+        .catch(function () {
+          // Сервер жауап бермесе: уақыт «жақында» күйінде қалады, тізім өзгермейді
+          if (TARGET === null) applyContest(null);
+          setMode("offline");
+        });
+    }
+
+    // Студент кіріп тұрса — «Тіркелу» батырмалары жарыс бетіне апарады
+    function loadMe() {
+      fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" })
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (d) {
+          if (!d || !d.loggedIn) return;
+          meName = d.name || "";
+          $("doneName").textContent = meName;
+          $("regGuest").hidden = true;
+          $("done").hidden = false;
+          var cta = $("heroCta");
+          cta.textContent = "Жарыс бетіне өту";
+          cta.href = "/contest";
+          $("chipLogin").href = "/contest";
+          $("chipLoginFull").textContent = "Жарыс беті";
+          $("chipLoginShort").textContent = "Жарыс";
+          if (names.length) render();
+        })
+        .catch(function () {});
+    }
+
+    applyContest(null);
+    loadLanding();
+    loadMe();
+    setInterval(function () {
+      if (!document.hidden) loadLanding();
+    }, CONFIG.pollMs);
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) loadLanding();
+    });
+
+    /* ============================================================
+       АНИМАЦИЯ · бөлімдердің шығуы, «decode» кикерлер, glitch тақырыптар
+       ============================================================ */
+    (function () {
+      var root = document.documentElement;
+      var story = $("story");
+      // Hero экраннан тыс болса — оның шексіз анимациялары тоқтайды
+      if ("IntersectionObserver" in window && story) {
+        new IntersectionObserver(function (es) {
+          root.classList.toggle("story-off", !es[0].isIntersecting);
+        }).observe(story);
+      }
+      if (RM || !("IntersectionObserver" in window)) return;
+      root.classList.add("anim");
+
+      var GLYPHS = "01{}[]<>/#$*+=?;:ӘҒҚҢӨҰҮҺІ";
+      function decode(el) {
+        var final = el.textContent, len = final.length, t0 = performance.now(), dur = 560;
+        (function step(t) {
+          var k = Math.min(1, (t - t0) / dur), n = Math.floor(k * len), out = final.slice(0, n);
+          for (var i = n; i < len; i++) out += final[i] === " " ? " " : GLYPHS[(Math.random() * GLYPHS.length) | 0];
+          el.textContent = out;
+          if (k < 1) requestAnimationFrame(step);
+          else el.textContent = final;
+        })(t0);
+      }
+
+      var io = new IntersectionObserver(
+        function (es) {
+          es.forEach(function (e) {
+            if (!e.isIntersecting) return;
+            var el = e.target;
+            io.unobserve(el);
+            el.classList.add("in");
+            if (el.classList.contains("kicker")) decode(el);
+            if (el.classList.contains("h2")) setTimeout(function () { el.classList.add("gl"); }, 120);
+            var clear = function () {
+              el.removeAttribute("data-rv");
+              el.style.removeProperty("--d");
+            };
+            el.addEventListener("transitionend", clear, { once: true });
+            setTimeout(clear, 2200);
+          });
+        },
+        { rootMargin: "0px 0px -8% 0px", threshold: 0.12 },
+      );
+
+      var small = innerWidth <= 720;
+      document.querySelectorAll(".sect").forEach(function (sect) {
+        var items = sect.querySelectorAll(
+          ".kicker, .h2, .lede, .panel, .term, .big-row, .roster, .cfg, .prize, .dl-row, .mode-note",
+        );
+        var k = 0;
+        items.forEach(function (el) {
+          el.setAttribute("data-rv", "");
+          el.style.setProperty("--d", Math.min(small ? 4 : 8, k++));
+          io.observe(el);
+        });
+      });
+    })();
+  })();
+
+  </script>
