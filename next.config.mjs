@@ -2,6 +2,8 @@
 const nextConfig = {
   // Үй қалтасында бөгде package-lock.json бар — түбірді нақты көрсетеміз
   outputFileTracingRoot: import.meta.dirname,
+  // Vercel демосы: seed-телген SQLite үлгісі әр функцияның бумасына кіреді (lib/server/store/index.ts → /tmp-ға көшіріледі)
+  outputFileTracingIncludes: { "/**": ["./prisma/demo.db"] },
   // E2E тесті өз build қалтасын қолданады — қатар жүрген dev-сервердің .next-ін бұзбасын
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   // Лендинг пен лидерборд әзірге статикалық HTML күйінде қалады (public/).

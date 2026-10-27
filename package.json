@@ -13,7 +13,8 @@
     "db:deploy": "DATABASE_URL=${DATABASE_URL:-file:./dev.db} prisma migrate deploy",
     "db:migrate": "DATABASE_URL=${DATABASE_URL:-file:./dev.db} prisma migrate dev",
     "db:seed": "DATABASE_URL=${DATABASE_URL:-file:./dev.db} tsx prisma/seed.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "vercel-build": "prisma generate && DATABASE_URL=file:./demo.db prisma migrate deploy && DATABASE_URL=file:./demo.db tsx prisma/seed.ts && next build"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",

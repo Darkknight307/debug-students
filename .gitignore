@@ -13,3 +13,4 @@ prisma/*.db*
 .idea/
 .claude/
 *.tsbuildinfo
+.env*

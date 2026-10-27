@@ -6,6 +6,10 @@ live leaderboard, operator/admin panel, AI/copy analysis (never a verdict). UI i
 
 **Stack:** Next.js 15 (App Router, React 19, TypeScript) · **Prisma ORM + SQLite** · `openapi.yml` contract.
 
+**Live demo:** https://debug-students.vercel.app — runs on Vercel with a *temporary* SQLite file: the build seeds
+`prisma/demo.db` (migrations + first contest), each server instance copies it to `/tmp` on the first request.
+Data lives until the instance restarts; a persistent production database is post-MVP (#51).
+
 ## Run
 
 ```bash
