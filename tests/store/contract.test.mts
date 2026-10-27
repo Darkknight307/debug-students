@@ -42,7 +42,7 @@ for (const [name, make] of [["MemoryStore", () => new MemoryStore()], ["PrismaSt
     });
 
     test("users: email кіші әріппен, қайталанса ConflictError, хэш тек userByEmail-де", async () => {
-      const u = await s.createUser(user("Aidos@Mock.Test", { full_name: "Серіков Айдос" }));
+      const u = await s.createUser(user("Aidos@Mock.Test", { full_name: "Серіков Айдос", first_login_at: "2026-10-20T00:00:00.000Z" }));
       assert.equal(u.email, "aidos@mock.test");
       assert.ok(!("password_hash" in u));
       await assert.rejects(s.createUser(user("aidos@mock.test")), (e) => isConflict(e));
