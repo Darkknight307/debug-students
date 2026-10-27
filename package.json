@@ -14,7 +14,8 @@
     "db:migrate": "DATABASE_URL=${DATABASE_URL:-file:./dev.db} prisma migrate dev",
     "db:seed": "DATABASE_URL=${DATABASE_URL:-file:./dev.db} tsx --env-file-if-exists=.env prisma/seed.ts",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && DATABASE_URL=file:./demo.db prisma migrate deploy && DATABASE_URL=file:./demo.db tsx prisma/seed.ts && next build"
+    "vercel-build": "prisma generate && tsx scripts/db-migrate-libsql.ts && tsx prisma/seed.ts && next build",
+    "db:migrate:libsql": "tsx --env-file-if-exists=.env scripts/db-migrate-libsql.ts"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",
@@ -23,6 +24,8 @@
     "@codemirror/state": "^6.7.6",
     "@codemirror/view": "^6.43.13",
     "@lezer/highlight": "^1.2.4",
+    "@libsql/client": "^0.8.1",
+    "@prisma/adapter-libsql": "^6.19.3",
     "@prisma/client": "^6.19.3",
     "next": "^15.5.25",
     "prisma": "^6.19.3",

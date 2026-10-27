@@ -6,6 +6,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
+import { PrismaLibSQL } from "@prisma/adapter-libsql";
+import { createClient } from "@libsql/client";
+import { migrateLibsql } from "../../lib/server/libsqlMigrate.ts";
 import { MemoryStore } from "../../lib/server/store/memory.ts";
 import { PrismaStore } from "../../lib/server/store/prisma.ts";
 import { ConflictError, isConflict, type Store } from "../../lib/server/store/types.ts";
@@ -14,8 +17,15 @@ const dir = mkdtempSync(join(tmpdir(), "debug-store-"));
 const url = `file:${join(dir, "contract.db")}`;
 execSync("npx prisma migrate deploy", { env: { ...process.env, DATABASE_URL: url }, stdio: "ignore" });
 const prisma = new PrismaClient({ datasourceUrl: url });
+// Үшінші нұсқа: Turso-дағыдай libSQL адаптері арқылы (жергілікті libSQL файлы, миграциялар — біздің runner)
+const libsqlUrl = `file:${join(dir, "libsql.db")}`;
+const migrator = createClient({ url: libsqlUrl });
+await migrateLibsql(migrator);
+migrator.close();
+const prismaLibsql = new PrismaClient({ adapter: new PrismaLibSQL({ url: libsqlUrl }) });
 after(async () => {
   await prisma.$disconnect();
+  await prismaLibsql.$disconnect();
   rmSync(dir, { recursive: true, force: true });
 });
 
@@ -33,7 +43,7 @@ const task = (round_id: string, idx: number, variant: "A" | "B" | null = null) =
   variant, image_url: null, entry: null, max_changed_lines: null, forbidden: ["set("], ai_refs: [], tests_public: [{ args: [[1]], expected: "1" }], tests_hidden: [],
 });
 
-for (const [name, make] of [["MemoryStore", () => new MemoryStore()], ["PrismaStore (SQLite)", () => new PrismaStore(prisma)]] as [string, () => Store][]) {
+for (const [name, make] of [["MemoryStore", () => new MemoryStore()], ["PrismaStore (SQLite)", () => new PrismaStore(prisma)], ["PrismaStore (libSQL адаптері)", () => new PrismaStore(prismaLibsql)]] as [string, () => Store][]) {
   describe(name, () => {
     let s: Store;
     before(async () => {
