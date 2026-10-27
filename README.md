@@ -12,9 +12,11 @@ Data lives until the instance restarts; a persistent production database is post
 
 ## Run
 
+Node 22.9+.
+
 ```bash
 npm install
-cp .env.example .env          # set SESSION_SECRET (≥ 32 chars), ADMIN_EMAIL, ADMIN_PASSWORD
+cp .env.example .env          # first time only (do not overwrite an existing .env): set SESSION_SECRET (≥ 32 chars), ADMIN_EMAIL, ADMIN_PASSWORD
 npm run db:seed               # admin + «DEBUG · Студенттер» contest with 16 tasks
 npm run dev                   # applies migrations, http://localhost:3000 (admin: /admin)
 ```

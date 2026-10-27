@@ -24,7 +24,7 @@ Stack: one **Next.js 15** app (App Router, React 19, TypeScript). The frontend t
 | E2E suites (real Next.js server, memory and SQLite) | `npm run test:e2e` |
 | Type check + production build | `npm run build` |
 | Apply migrations / create a new one | `npm run db:deploy` / `npm run db:migrate -- --name <name>` (schema: `prisma/schema.prisma`) |
-| Seed admin + first contest | `npm run db:seed` (reads `ADMIN_EMAIL`, `ADMIN_PASSWORD`) |
+| Seed admin + first contest | `npm run db:seed` (reads `ADMIN_EMAIL`, `ADMIN_PASSWORD` from `.env`; Node 22.9+) |
 
 Keep this table in sync with `package.json`. Local config lives in `.env` (copy `.env.example`).
 
