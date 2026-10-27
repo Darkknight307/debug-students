@@ -10,7 +10,7 @@ The UI is in Kazakh.
 Stack: one **Next.js 15** app (App Router, React 19, TypeScript). The frontend talks to the backend only through
 `lib/client` (`api` object, http or **mockService**). The backend is Next.js route handlers → services in
 `lib/server` → a **`Store` interface** with two implementations: `MemoryStore` and `PrismaStore`
-(**Prisma ORM + SQLite**). Contract: `openapi.yml`.
+(**Prisma ORM + SQLite**; production on Turso/libSQL through `@prisma/adapter-libsql`). Contract: `openapi.yml`.
 
 ## Commands
 
@@ -24,6 +24,7 @@ Stack: one **Next.js 15** app (App Router, React 19, TypeScript). The frontend t
 | E2E suites (real Next.js server, memory and SQLite) | `npm run test:e2e` |
 | Type check + production build | `npm run build` |
 | Apply migrations / create a new one | `npm run db:deploy` / `npm run db:migrate -- --name <name>` (schema: `prisma/schema.prisma`) |
+| Apply migrations to Turso (libSQL) | `npm run db:migrate:libsql` (needs `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`) |
 | Seed admin + first contest | `npm run db:seed` (reads `ADMIN_EMAIL`, `ADMIN_PASSWORD` from `.env`; Node 22.9+) |
 
 Keep this table in sync with `package.json`. Local config lives in `.env` (copy `.env.example`).
@@ -32,7 +33,7 @@ Keep this table in sync with `package.json`. Local config lives in `.env` (copy 
 
 - Work on **one GitHub issue at a time**. Read its acceptance criteria (and the QA test cases) before starting and before handing over.
 - Every commit message references the issue: `Add PrismaStore (#39)`.
-- **Never add a dependency without asking.** Runtime deps: next, react, react-dom, @prisma/client, CodeMirror packages; dev: prisma, tsx, typescript.
+- **Never add a dependency without asking.** Runtime deps: next, react, react-dom, @prisma/client, @prisma/adapter-libsql, @libsql/client, CodeMirror packages; dev: prisma, tsx, typescript.
 - Every change ships with tests; `npm test` and `npm run test:e2e` must pass, `npm run build` must succeed.
 - **Relative imports only** (no `@/` alias).
 - Pages and components never call `fetch` or a database directly — only `lib/client` (`api`).

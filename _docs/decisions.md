@@ -60,3 +60,10 @@ contract ─ openapi.yml (every /api path; a test checks it matches the route fi
     4 SQLite → 5 connect. Each iteration is a set of `iter-*` issues.
 13. **Times** are stored as UTC ISO strings; the UI shows Kazakhstan time (UTC+5) as before.
 14. **Relative imports only**; no `@/` alias (inherited from the original project).
+15. **Production database: Turso (libSQL)** (#51). Vercel functions cannot keep a SQLite file, so production uses
+    Turso — hosted SQLite, same dialect, same `prisma/schema.prisma` and migration SQL — through
+    `@prisma/adapter-libsql` (the pure-JS `/web` client for `libsql://`/`https://`; the native client only for local
+    `file:` URLs in tests). `TURSO_DATABASE_URL` switches it on; without it the local SQLite file is used.
+    `prisma migrate deploy` does not support libSQL URLs, so `scripts/db-migrate-libsql.ts` applies the migration
+    files in order, one transaction each, recording them in `_libsql_migrations`. The Vercel build fails without a
+    Turso URL instead of silently using a temporary file.

@@ -5,9 +5,9 @@
 | Level | Where | Runs with | What it proves |
 |---|---|---|---|
 | Unit | `tests/**/unit.test.mts` | `npm test` | pure logic: validation, rules, ranking, sessions, password hashing, analysis |
-| Store contract | `tests/store/contract.test.mts` | `npm test` | `MemoryStore` and `PrismaStore` behave the same (every case runs on both; Prisma on a temporary SQLite file) |
+| Store contract | `tests/store/contract.test.mts`, `tests/store/migrate.test.mts` | `npm test` | `MemoryStore`, `PrismaStore` on a SQLite file and `PrismaStore` on the libSQL adapter behave the same; the libSQL migration runner is ordered, idempotent, atomic |
 | Contract | `tests/contract/openapi.test.mts` | `npm test` | `openapi.yml` and the route handlers list the same paths and methods |
-| E2E | `tests/contest/e2e.mjs`, `tests/auth/e2e.sh`, `tests/admin/e2e.mjs` (runner `tests/e2e.sh`) | `npm run test:e2e` | the real Next.js server end to end, on `DB_DRIVER=memory` and on a temporary SQLite file |
+| E2E | `tests/contest/e2e.mjs`, `tests/auth/e2e.sh`, `tests/admin/e2e.mjs` (runner `tests/e2e.sh`) | `npm run test:e2e` (one mode: `E2E_ONLY=libsql`) | the real Next.js server end to end in three modes: memory, SQLite file, libSQL adapter |
 | Manual | browser (desktop + 375 px) | a person / QA | what tests miss: layout, animations, copy, flows — bugs become `user-test-bug` issues |
 
 `npm test` runs every `tests/**/*.test.mts` through `tsx` with `node:test`.
@@ -19,6 +19,7 @@
 - Name tests after behaviour, in Kazakh or English: `test("студент әкімші API-іне кіре алмайды", …)`.
 - Never rely on the real clock for logic: pass `now` explicitly (services take `now = Date.now()`).
 - E2E servers each get their own port **and** `NEXT_DIST_DIR`; two servers sharing `.next` break each other.
+- E2E servers get explicit values for behaviour-changing env (`CRON_SECRET`, `AUTH_EMAILS_ENABLED`, `TURSO_*`): Next.js loads the developer's `.env` into them otherwise (#63).
 - Seed e2e data through the test hooks (`/api/test-hooks/seed`), which exist only with `E2E_TEST_HOOKS=1`.
 
 ## Test data

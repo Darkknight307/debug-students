@@ -6,9 +6,9 @@ live leaderboard, operator/admin panel, AI/copy analysis (never a verdict). UI i
 
 **Stack:** Next.js 15 (App Router, React 19, TypeScript) · **Prisma ORM + SQLite** · `openapi.yml` contract.
 
-**Live demo:** https://debug-students.vercel.app — runs on Vercel with a *temporary* SQLite file: the build seeds
-`prisma/demo.db` (migrations + first contest), each server instance copies it to `/tmp` on the first request.
-Data lives until the instance restarts; a persistent production database is post-MVP (#51).
+**Live:** https://debug-students.vercel.app — Vercel + **Turso** (libSQL, hosted SQLite) through the same Prisma
+schema and migrations (`@prisma/adapter-libsql`). Data persists across deploys and instances. Locally the app uses
+a plain SQLite file.
 
 ## Run
 
@@ -24,11 +24,18 @@ npm run dev                   # applies migrations, http://localhost:3000 (admin
 UI only, no backend: `npm run dev:mock` (MOCK badge; demo accounts `demo@mock.test` / `demo-pass-1`,
 admin `admin@mock.test` / `admin-pass-1`, stored only in the browser).
 
+## Deploy (Vercel + Turso)
+
+1. Vercel → project → **Storage → Create Database → Turso → Connect** (adds `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`).
+2. Project env: `SESSION_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `CRON_SECRET`, `NEXT_PUBLIC_SITE_URL`.
+3. `npx vercel deploy --prod --yes` — the build (`npm run vercel-build`) applies migrations to Turso
+   (`scripts/db-migrate-libsql.ts`), seeds the admin and the first contest, then builds. Without Turso it stops with a clear error.
+
 ## Test
 
 ```bash
-npm test           # 70 unit + store contract (MemoryStore and PrismaStore/SQLite) + openapi contract tests
-npm run test:e2e   # contest + auth + admin e2e on the real server, on DB_DRIVER=memory and on SQLite
+npm test           # unit + store contract (MemoryStore, PrismaStore on SQLite, PrismaStore on libSQL) + openapi contract
+npm run test:e2e   # contest + auth + admin e2e on the real server: memory, SQLite file, libSQL adapter
 npm run build
 ```
 
