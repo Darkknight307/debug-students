@@ -10,6 +10,8 @@ How work is organised in this repo (AI-native workflow: brainstorm → plan → 
   - `post-mvp` — follow-ups after the MVP. Never dropped silently: anything cut from an `mvp` issue lands here.
   - `user-test-bug` — a bug found while **actually running and testing** the app (not by reading code). Must be closed before the deadline.
   - `iter-0-process` … `iter-5-integration` — which iteration an `mvp` issue belongs to.
+  - `iter-6-deploy` — iteration 6 «test, containerise and deploy» (PostgreSQL, Docker, Compose, Playwright, CI/CD, AWS).
+  - `e2e-test` — one Playwright end-to-end test for one feature (one issue = one spec in `e2e/features/`).
 - Work on **one issue at a time**, in issue-number order unless a dependency says otherwise.
 - Every commit message references the issue: `Add PrismaStore (#39)`.
 
@@ -23,6 +25,7 @@ How work is organised in this repo (AI-native workflow: brainstorm → plan → 
 | 3 | Backend, **in-memory store** | Route handlers → services → `Store` interface → `MemoryStore` |
 | 4 | Backend, **SQLite** | `PrismaStore` (Prisma ORM, SQLite file) passes the same store contract tests |
 | 5 | **Connect** frontend + backend | Real backend by default, e2e on SQLite, manual user test session, docs |
+| 6 | **Test, containerise, deploy** | PostgreSQL, one Docker image, Compose, a Playwright `e2e-test` issue per feature, CI/CD, Vercel + Neon, AWS (CloudFormation) |
 
 ## Roles
 
@@ -57,5 +60,6 @@ When running the app (browser, curl, e2e) shows wrong behaviour:
 
 ## Stop condition
 
-`gh issue list --label mvp --state open` **and** `gh issue list --label user-test-bug --state open` are both empty,
-all test suites pass and `next build` succeeds.
+`gh issue list --label mvp --state open`, `gh issue list --label user-test-bug --state open` and (iteration 6)
+`gh issue list --label e2e-test --state open` are empty, all test suites pass (`npm test`, `npm run test:e2e`,
+`npm run test:pw:compose`), `next build` succeeds and CI is green.

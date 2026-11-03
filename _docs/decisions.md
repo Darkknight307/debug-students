@@ -24,7 +24,7 @@ browser ── pages/components (app/) ── lib/client (api)
 server  ── app/api/**/route.ts (thin: parse, auth, call a service, map errors)
             └─ lib/server/* services (auth, contest, rounds, ranking, admin)
                  └─ getStore(): Store ── MemoryStore   (DB_DRIVER=memory: tests, quick runs)
-                                      └─ PrismaStore   (DB_DRIVER=sqlite, default: Prisma ORM → SQLite file)
+                                      └─ PrismaStore   (DB_DRIVER=postgres, default: Prisma ORM → PostgreSQL)
 contract ─ openapi.yml (every /api path; a test checks it matches the route files)
 ```
 
@@ -38,8 +38,11 @@ contract ─ openapi.yml (every /api path; a test checks it matches the route fi
 3. **Store interface** (`lib/server/store/types.ts`) is the only way to storage. Two implementations pass the same
    contract test suite (`tests/store/contract.test.ts`). Business rules (ranking, round windows, start/extend/close,
    variants) live in services, not in the store, so both stores behave the same.
-4. **Database: SQLite through Prisma 6** (`prisma/schema.prisma`, migrations committed). JSON columns for task options,
-   tests, forbidden list, AI refs and telemetry. `DATABASE_URL=file:./dev.db`. Postgres later = change the provider (#50).
+4. **Database: PostgreSQL through Prisma 6** (`prisma/schema.prisma`, migrations committed; #50 replaced the SQLite
+   provider and migration — the models did not change). JSON columns (`jsonb`) for task options, tests, forbidden list,
+   AI refs and telemetry. Postgres differences handled in `PrismaStore`: `NULL` sorts last (explicit `nulls: "first"`),
+   check-then-insert runs `SERIALIZABLE` with retry (READ COMMITTED does not serialize it), the submissions sequence is
+   moved after explicitly inserted ids, Cyrillic case-insensitive search stays in code (ILIKE depends on the locale).
 5. **Auth: our own.** Passwords hashed with Node `crypto.scrypt` (N=16384, r=8, p=1, 16-byte salt, 64-byte key),
    compared with `timingSafeEqual`. Sessions are the existing HMAC-signed httpOnly cookies: `debug_session` (student,
    12 h) and `debug_admin` (admin, 12 h). One `users` table with `role` = `student` | `admin`.
@@ -53,17 +56,35 @@ contract ─ openapi.yml (every /api path; a test checks it matches the route fi
    student 60 s, landing 15 s. Admin writes clear the relevant cache keys.
 10. **Rate limits** stay in memory per instance (`lib/rateLimit.ts`): login failures per email/IP, register/forgot per
     email/IP. Shared limits → #52.
-11. **Tests:** `node:test` through `tsx` for unit and store-contract tests; e2e suites start the real Next.js server
-    with `E2E_TEST_HOOKS=1` (enables `/api/test-hooks/*`: reset, seed, patch, dump, outbox) on `DB_DRIVER=memory` and on a
-    temporary SQLite file. The hooks return 404 unless the env flag is set.
+11. **Tests:** `node:test` through `tsx` for unit and store-contract tests (Postgres: a fresh schema per run in
+    `TEST_DATABASE_URL`); API e2e suites start the real Next.js server with `E2E_TEST_HOOKS=1` (enables
+    `/api/test-hooks/*`: reset, seed, patch, dump, outbox) on `DB_DRIVER=memory` and on Postgres; **Playwright** drives a
+    real browser against the Docker Compose stack (#56). The hooks return 404 unless the env flag is set.
 12. **Iterations** (see `process.md`): 0 process → 1 frontend + mockService → 2 `openapi.yml` → 3 in-memory backend →
     4 SQLite → 5 connect. Each iteration is a set of `iter-*` issues.
 13. **Times** are stored as UTC ISO strings; the UI shows Kazakhstan time (UTC+5) as before.
 14. **Relative imports only**; no `@/` alias (inherited from the original project).
-15. **Production database: Turso (libSQL)** (#51). Vercel functions cannot keep a SQLite file, so production uses
-    Turso — hosted SQLite, same dialect, same `prisma/schema.prisma` and migration SQL — through
-    `@prisma/adapter-libsql` (the pure-JS `/web` client for `libsql://`/`https://`; the native client only for local
-    `file:` URLs in tests). `TURSO_DATABASE_URL` switches it on; without it the local SQLite file is used.
-    `prisma migrate deploy` does not support libSQL URLs, so `scripts/db-migrate-libsql.ts` applies the migration
-    files in order, one transaction each, recording them in `_libsql_migrations`. The Vercel build fails without a
-    Turso URL instead of silently using a temporary file.
+15. **Production databases: Neon (Vercel) and Postgres in Compose (AWS)** (#50, #67, #68). Turso/libSQL (#51) was
+    removed with SQLite; its data moves with `npm run db:import` (#66: Turso HTTP API / SQLite file / JSON export →
+    empty Postgres, one transaction, counts compared). On Vercel the runtime prefers the pooled `POSTGRES_PRISMA_URL`,
+    migrations use `DATABASE_URL_UNPOOLED`.
+
+## Iteration 6 — test, containerise and deploy
+
+| Question | Options | Chosen |
+|---|---|---|
+| Database | keep SQLite for dev + Postgres in prod · **Postgres everywhere** | Postgres everywhere (owner): one dialect in tests, Docker and production |
+| Image | **Next.js standalone, one container** · nginx for static + Node API (two processes) | standalone: Next serves `public/` and `.next/static` itself; one process, one image |
+| Migrations in the image | **Prisma CLI in `/opt/prisma-cli`, `migrate deploy` on start** · custom runner · separate migrate image | the real Prisma CLI (same `_prisma_migrations` table everywhere), installed in an isolated folder so dev deps stay out |
+| Production cloud | **AWS + CloudFormation** · GCP + Terraform | AWS (owner), free account |
+| Postgres on AWS | **container on the EC2, data on its own EBS volume** · RDS free tier | container: free, same Compose as locally; the separate volume survives an instance replacement |
+| Registry | **ECR** · GHCR | ECR: the instance pulls with its IAM role — no registry token anywhere |
+| Deploy channel | **SSM Run Command** · SSH | SSM: port 22 closed, CI uses an OIDC role limited to `main`, one instance and one document |
+| HTTPS | **Caddy + `<ip>.sslip.io`** · ALB + ACM (paid) · own domain | Caddy: automatic Let's Encrypt without a domain or a paid load balancer |
+| E2E | **Playwright against Compose**, one spec per feature (`e2e-test` issues) | the built image + Postgres is what production runs |
+
+16. **Docker image** (#64): `node:22-bookworm-slim`, three stages, non-root `node`, `HEALTHCHECK` on `/api/health`,
+    `APP_VERSION` = git SHA. `output: "standalone"` only with `NEXT_OUTPUT=standalone` (Vercel build unchanged). Seed and
+    the import script are bundled with the `esbuild` binary that `tsx` already ships.
+17. **Shared server state lives on `globalThis`** (#60, #84): Next.js bundles every route separately, so module-level
+    caches and counters exist once per route bundle; `afterWrite()` and the test-hook reset can only clear what is shared.

@@ -10,22 +10,29 @@ The UI is in Kazakh.
 Stack: one **Next.js 15** app (App Router, React 19, TypeScript). The frontend talks to the backend only through
 `lib/client` (`api` object, http or **mockService**). The backend is Next.js route handlers → services in
 `lib/server` → a **`Store` interface** with two implementations: `MemoryStore` and `PrismaStore`
-(**Prisma ORM + SQLite**; production on Turso/libSQL through `@prisma/adapter-libsql`). Contract: `openapi.yml`.
+(**Prisma ORM + PostgreSQL**). Contract: `openapi.yml`. One **Docker** image (`Dockerfile`, Next.js standalone: static
+frontend + API), **Compose** (`compose.yml` app + Postgres), **Playwright** e2e against Compose, **GitHub Actions**
+CI/CD, production on Vercel + Neon and on AWS (`infra/aws`, CloudFormation).
 
 ## Commands
 
 | What | Command |
 |---|---|
 | Install | `npm install` |
-| Dev server, real backend (SQLite) | `npm run dev` → http://localhost:3000 |
+| Local PostgreSQL (Compose `db`, 127.0.0.1:`DB_PORT`) | `npm run db:up` |
+| Dev server, real backend (Postgres from `.env` `DATABASE_URL`) | `npm run dev` → http://localhost:3000 |
 | Dev server, UI only on mocks | `npm run dev:mock` → http://localhost:3000 |
-| Unit + store contract tests | `npm test` |
-| One test file | `npx tsx --test tests/store/contract.test.ts` |
-| E2E suites (real Next.js server, memory and SQLite) | `npm run test:e2e` |
+| Whole stack in Docker (app + Postgres) | `docker compose up --build` → http://localhost:3000 |
+| Unit + store contract + import tests (need Postgres at `TEST_DATABASE_URL`) | `npm test` |
+| One test file | `npx tsx --test tests/store/contract.test.mts` |
+| API e2e suites (real Next.js server, memory and postgres) | `npm run test:e2e` |
+| Playwright e2e against Docker Compose (build → up → test → down) | `npm run test:pw:compose` (one spec: `npm run test:pw:compose -- e2e/features/02-register.spec.ts`) |
+| Playwright against an already running stack | `npm run test:pw` (`E2E_BASE_URL`, default http://localhost:3300) |
 | Type check + production build | `npm run build` |
 | Apply migrations / create a new one | `npm run db:deploy` / `npm run db:migrate -- --name <name>` (schema: `prisma/schema.prisma`) |
-| Apply migrations to Turso (libSQL) | `npm run db:migrate:libsql` (needs `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`) |
 | Seed admin + first contest | `npm run db:seed` (reads `ADMIN_EMAIL`, `ADMIN_PASSWORD` from `.env`; Node 22.9+) |
+| Copy old data into Postgres | `npm run db:import -- --from <libsql://… \| file:….db \| export.json> [--to url] [--export file.json]` |
+| AWS stack / deploy / data | `infra/aws/README.md` (`aws cloudformation deploy …`, `infra/aws/deploy.sh`, `infra/aws/import-data.sh`) |
 
 Keep this table in sync with `package.json`. Local config lives in `.env` (copy `.env.example`).
 
@@ -33,14 +40,16 @@ Keep this table in sync with `package.json`. Local config lives in `.env` (copy 
 
 - Work on **one GitHub issue at a time**. Read its acceptance criteria (and the QA test cases) before starting and before handing over.
 - Every commit message references the issue: `Add PrismaStore (#39)`.
-- **Never add a dependency without asking.** Runtime deps: next, react, react-dom, @prisma/client, @prisma/adapter-libsql, @libsql/client, CodeMirror packages; dev: prisma, tsx, typescript.
-- Every change ships with tests; `npm test` and `npm run test:e2e` must pass, `npm run build` must succeed.
+- **Never add a dependency without asking.** Runtime deps: next, react, react-dom, @prisma/client, prisma, CodeMirror packages; dev: tsx, typescript, @playwright/test.
+- Every change ships with tests; `npm test`, `npm run test:e2e` and `npm run test:pw:compose` must pass, `npm run build` must succeed. CI (`.github/workflows/ci.yml`) runs all of them on every push.
 - **Relative imports only** (no `@/` alias).
 - Pages and components never call `fetch` or a database directly — only `lib/client` (`api`).
 - Route handlers never touch Prisma directly — only services in `lib/server` and `getStore()`.
 - Answer keys (`correct`, `solution_code`, `tests_hidden`) never leave the server except through `/api/admin/*`.
 - Test data uses invented names and `@mock.test` emails. No real student data, no secrets in the repo.
 - After `next build` or a dev server with `NEXT_DIST_DIR`, remove `node_modules/.cache/...` entries that Next adds to `tsconfig.json` `include`.
+- Module-level state is per route bundle in Next.js: anything shared between routes (store, caches, rate limits) lives on `globalThis` (#60, #84).
+- Infrastructure stays inside the AWS free account: never add paid resources (NAT, load balancer, RDS, detailed monitoring) to `infra/aws/stack.yml`.
 
 ## Documents
 
