@@ -31,7 +31,7 @@ CI/CD, production on Vercel + Neon and on AWS (`infra/aws`, CloudFormation).
 | Type check + production build | `npm run build` |
 | Apply migrations / create a new one | `npm run db:deploy` / `npm run db:migrate -- --name <name>` (schema: `prisma/schema.prisma`) |
 | Seed admin + first contest | `npm run db:seed` (reads `ADMIN_EMAIL`, `ADMIN_PASSWORD` from `.env`; Node 22.9+) |
-| Copy old data into Postgres | `npm run db:import -- --from <libsql://… \| file:….db \| export.json> [--to url] [--export file.json]` |
+| Copy old data into Postgres | `npm run db:import -- --from <libsql://… \| postgresql://… \| file:….db \| export.json> [--to url] [--export file.json]` |
 | AWS stack / deploy / data | `infra/aws/README.md` (`aws cloudformation deploy …`, `infra/aws/deploy.sh`, `infra/aws/import-data.sh`) |
 
 Keep this table in sync with `package.json`. Local config lives in `.env` (copy `.env.example`).

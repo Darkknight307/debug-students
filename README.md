@@ -68,7 +68,7 @@ repository variables from `infra/aws/README.md` exist, the deploy job is skipped
   and builds; without a database URL it stops with a clear error.
 - **AWS (CloudFormation):** [`infra/aws/README.md`](infra/aws/README.md) — create/delete the stack, CI variables,
   cost guardrails.
-- **Existing data → Postgres:** `npm run db:import -- --from <libsql://… | file:….db | export.json>` (empty target,
+- **Existing data → Postgres:** `npm run db:import -- --from <libsql://… | postgresql://… | file:….db | export.json>` (empty target,
   one transaction, row counts compared); `--export file.json` to carry it to AWS.
 
 ## Architecture
