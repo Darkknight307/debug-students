@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { Prisma, PrismaClient } from "@prisma/client";
 
 /**
- * Бұрынғы дерекқордан (Turso/libSQL, SQLite файлы не JSON экспорт) PostgreSQL-ге көшіру (#66).
+ * Бұрынғы дерекқордан (Turso/libSQL, SQLite файлы, басқа Postgres не JSON экспорт) PostgreSQL-ге көшіру (#66).
  * Схема сол Prisma моделі, сондықтан кестелер мен бағандар бірдей; тек түрлері ауысады: SQLite-те boolean 0/1,
  * Json — мәтін, Bytes — BLOB. Барлығы бір транзакцияда, тек бос (миграцияланған) дерекқорға жазылады.
  * Жол мазмұны ешқашан шығарылмайды — тек кесте атаулары мен сандар.
@@ -135,11 +135,24 @@ export function readJsonFile(path: string): Snapshot {
   return snap;
 }
 
+/** Басқа Postgres (мысалы, Neon-нан AWS-ке көшіру үшін экспорт). */
+export async function readPostgres(url: string): Promise<Snapshot> {
+  const db = new PrismaClient({ datasourceUrl: url });
+  try {
+    const snap = emptySnapshot();
+    for (const t of TABLE_NAMES) snap[t] = normalize(t, await (delegate(db, t) as unknown as { findMany(): Promise<Row[]> }).findMany());
+    return snap;
+  } finally {
+    await db.$disconnect();
+  }
+}
+
 export async function readSource(from: string, token?: string): Promise<Snapshot> {
+  if (/^postgres(ql)?:\/\//.test(from)) return readPostgres(from);
   if (/^(libsql|https?):\/\//.test(from)) return readTurso(from, token);
   if (from.startsWith("file:")) return readSqliteFile(from.slice("file:".length));
   if (from.endsWith(".json")) return readJsonFile(from);
-  throw new Error(`Көз танылмады: ${from} (libsql://…, https://…, file:….db не ….json)`);
+  throw new Error(`Көз танылмады: ${from} (libsql://…, https://…, postgresql://…, file:….db не ….json)`);
 }
 
 export const countSnapshot = (s: Snapshot): Counts => Object.fromEntries(TABLE_NAMES.map((t) => [t, s[t].length])) as Counts;

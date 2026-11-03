@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { PrismaClient } from "@prisma/client";
 import { PrismaStore } from "../../lib/server/store/prisma.ts";
-import { countSnapshot, countTarget, importSnapshot, readJsonFile, readSqliteFile, readTurso, toJson, type Snapshot } from "../../lib/server/importData.ts";
+import { countSnapshot, countTarget, importSnapshot, readJsonFile, readPostgres, readSqliteFile, readTurso, toJson, type Snapshot } from "../../lib/server/importData.ts";
 import { dropSchema, freshSchema } from "../pgSchema.mts";
 
 const dir = mkdtempSync(join(tmpdir(), "debug-import-"));
@@ -110,6 +110,18 @@ describe("Turso/SQLite → PostgreSQL көшіру", () => {
     assert.deepEqual(back.task_images[0].data, snap.task_images[0].data);
     const db = target();
     assert.deepEqual(await importSnapshot(db, back), countSnapshot(snap));
+  });
+
+  test("I66-6: Postgres көзі (Neon → AWS экспорты) бірдей деректі оқиды", async () => {
+    const db = target();
+    await importSnapshot(db, snap);
+    const url = urls.at(-1)!;
+    const back = await readPostgres(url);
+    assert.deepEqual(countSnapshot(back), countSnapshot(snap));
+    const t3 = back.tasks.find((t) => t.id === T3)!;
+    assert.deepEqual([t3.forbidden, t3.options, t3.variant], [["set("], null, "A"]);
+    assert.deepEqual([...(back.task_images[0].data as Uint8Array)], [137, 80, 78, 71, 0, 255]);
+    assert.deepEqual(back.submissions.map((x) => [x.id, x.is_correct]).sort(), [[7, true], [9, false]]);
   });
 
   test("I66-5: ортасындағы қате жол (жоқ кезеңге сілтеме) — ештеңе жазылмайды", async () => {

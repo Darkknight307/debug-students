@@ -3,6 +3,7 @@
  *   npm run db:import -- --from libsql://<db>.turso.io        (токен: SOURCE_AUTH_TOKEN)
  *   npm run db:import -- --from file:./prisma/dev.db           (бұрынғы SQLite файлы)
  *   npm run db:import -- --from export.json                    (алдыңғы экспорт)
+ *   npm run db:import -- --from postgresql://… --export data-export.json   (Neon → AWS, #68)
  *   npm run db:import -- --from libsql://… --export export.json (Postgres-ке жазбай, JSON-ға сақтау — AWS үшін, #68)
  * Шығысы — тек кестелер мен жол сандары (көз / мақсат); сандар сәйкес келмесе, код 1.
  */
@@ -22,7 +23,7 @@ function table(src: Counts, dst?: Counts) {
 
 async function main() {
   const from = arg("from");
-  if (!from) throw new Error("--from берілмеген (libsql://…, https://…, file:….db не ….json)");
+  if (!from) throw new Error("--from берілмеген (libsql://…, https://…, postgresql://…, file:….db не ….json)");
   const snap = await readSource(from, process.env.SOURCE_AUTH_TOKEN);
   const src = countSnapshot(snap);
 
