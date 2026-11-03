@@ -1,11 +1,11 @@
-// Кезеңдердің толық ағыны: нақты Next.js сервері + Store (DB_DRIVER=memory не sqlite), деректер тест ілмектерімен.
+// Кезеңдердің толық ағыны: нақты Next.js сервері + Store (DB_DRIVER=memory не postgres), деректер тест ілмектерімен.
 // Іске қосу: node tests/contest/e2e.mjs   (Pyodide бөлігі браузерде бөлек тексеріледі)
 import { spawn } from "node:child_process";
 
 // Порттар dev-mock.sh-тағыдан бөлек (4466/3101), екеуі қатар жүре алады
 const DRIVER = process.env.E2E_DRIVER || "memory";
-const APP = `http://127.0.0.1:${{ memory: 3102, sqlite: 3112, libsql: 3122 }[DRIVER]}`;
-const DB_ENV = DRIVER === "memory" ? { DB_DRIVER: "memory" } : DRIVER === "libsql" ? { DB_DRIVER: "sqlite", TURSO_DATABASE_URL: process.env.E2E_DATABASE_URL } : { DB_DRIVER: "sqlite", DATABASE_URL: process.env.E2E_DATABASE_URL };
+const APP = `http://127.0.0.1:${{ memory: 3102, postgres: 3112 }[DRIVER]}`;
+const DB_ENV = DRIVER === "memory" ? { DB_DRIVER: "memory" } : { DB_DRIVER: "postgres", DATABASE_URL: process.env.E2E_DATABASE_URL };
 let pass = 0, fail = 0;
 const ok = (m) => { pass++; console.log("  ✓ " + m); };
 const bad = (m, d) => { fail++; console.log("  ✗ " + m + " — " + d); };
@@ -17,7 +17,7 @@ const iso = (ms) => new Date(Date.now() + ms).toISOString();
 const app = spawn("npx", ["next", "dev", "-p", APP.split(":").pop()], {
   stdio: "ignore",
   // Әзірлеушінің .env-і тест серверіне кірмесін (#63): мінезді өзгертетін айнымалылар анық беріледі
-  env: { ...process.env, CRON_SECRET: "", AUTH_EMAILS_ENABLED: "", TURSO_DATABASE_URL: "", TURSO_AUTH_TOKEN: "", ...DB_ENV, E2E_TEST_HOOKS: "1", SESSION_SECRET: "e2e-secret-e2e-secret-e2e-secret-000", NEXT_DIST_DIR: "node_modules/.cache/next-e2e-" + DRIVER },
+  env: { ...process.env, CRON_SECRET: "", AUTH_EMAILS_ENABLED: "", POSTGRES_PRISMA_URL: "", ...DB_ENV, E2E_TEST_HOOKS: "1", SESSION_SECRET: "e2e-secret-e2e-secret-e2e-secret-000", NEXT_DIST_DIR: "node_modules/.cache/next-e2e-" + DRIVER },
   detached: true,
 });
 const stop = () => { try { process.kill(-app.pid); } catch {} };

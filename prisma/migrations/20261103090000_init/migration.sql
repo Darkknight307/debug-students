@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "users" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password_hash" TEXT NOT NULL,
     "role" TEXT NOT NULL DEFAULT 'student',
@@ -11,31 +11,36 @@ CREATE TABLE "users" (
     "course" TEXT,
     "phone" TEXT,
     "first_login_at" TEXT NOT NULL,
-    "last_login_at" TEXT NOT NULL
+    "last_login_at" TEXT NOT NULL,
+
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "reset_tokens" (
-    "token_hash" TEXT NOT NULL PRIMARY KEY,
+    "token_hash" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     "expires_at" TEXT NOT NULL,
-    CONSTRAINT "reset_tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+
+    CONSTRAINT "reset_tokens_pkey" PRIMARY KEY ("token_hash")
 );
 
 -- CreateTable
 CREATE TABLE "contests" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "starts_at" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'draft',
     "board_locked" BOOLEAN NOT NULL DEFAULT false,
-    "board_autolock_min" INTEGER NOT NULL DEFAULT 10
+    "board_autolock_min" INTEGER NOT NULL DEFAULT 10,
+
+    CONSTRAINT "contests_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "rounds" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "contest_id" TEXT NOT NULL,
     "idx" INTEGER NOT NULL,
     "kind" TEXT NOT NULL,
@@ -44,12 +49,13 @@ CREATE TABLE "rounds" (
     "status" TEXT NOT NULL DEFAULT 'pending',
     "started_at" TEXT,
     "ends_at" TEXT,
-    CONSTRAINT "rounds_contest_id_fkey" FOREIGN KEY ("contest_id") REFERENCES "contests" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+
+    CONSTRAINT "rounds_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "tasks" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "round_id" TEXT NOT NULL,
     "idx" INTEGER NOT NULL,
     "title" TEXT NOT NULL,
@@ -63,16 +69,17 @@ CREATE TABLE "tasks" (
     "image_url" TEXT,
     "entry" TEXT,
     "max_changed_lines" INTEGER,
-    "forbidden" JSONB NOT NULL DEFAULT [],
-    "ai_refs" JSONB NOT NULL DEFAULT [],
-    "tests_public" JSONB NOT NULL DEFAULT [],
-    "tests_hidden" JSONB NOT NULL DEFAULT [],
-    CONSTRAINT "tasks_round_id_fkey" FOREIGN KEY ("round_id") REFERENCES "rounds" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "forbidden" JSONB NOT NULL DEFAULT '[]',
+    "ai_refs" JSONB NOT NULL DEFAULT '[]',
+    "tests_public" JSONB NOT NULL DEFAULT '[]',
+    "tests_hidden" JSONB NOT NULL DEFAULT '[]',
+
+    CONSTRAINT "tasks_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "submissions" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "contest_id" TEXT NOT NULL,
     "round_id" TEXT NOT NULL,
     "task_id" TEXT NOT NULL,
@@ -82,7 +89,9 @@ CREATE TABLE "submissions" (
     "is_correct" BOOLEAN NOT NULL,
     "points" INTEGER NOT NULL,
     "reason" TEXT,
-    "created_at" TEXT NOT NULL
+    "created_at" TEXT NOT NULL,
+
+    CONSTRAINT "submissions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -91,7 +100,7 @@ CREATE TABLE "extensions" (
     "student_id" TEXT NOT NULL,
     "extra_min" INTEGER NOT NULL,
 
-    PRIMARY KEY ("round_id", "student_id")
+    CONSTRAINT "extensions_pkey" PRIMARY KEY ("round_id","student_id")
 );
 
 -- CreateTable
@@ -100,7 +109,7 @@ CREATE TABLE "variants" (
     "student_id" TEXT NOT NULL,
     "variant" TEXT NOT NULL,
 
-    PRIMARY KEY ("contest_id", "student_id")
+    CONSTRAINT "variants_pkey" PRIMARY KEY ("contest_id","student_id")
 );
 
 -- CreateTable
@@ -111,15 +120,17 @@ CREATE TABLE "activity" (
     "data" JSONB NOT NULL,
     "updated_at" TEXT NOT NULL,
 
-    PRIMARY KEY ("round_id", "student_id")
+    CONSTRAINT "activity_pkey" PRIMARY KEY ("round_id","student_id")
 );
 
 -- CreateTable
 CREATE TABLE "task_images" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "mime" TEXT NOT NULL,
-    "data" BLOB NOT NULL,
-    "created_at" TEXT NOT NULL
+    "data" BYTEA NOT NULL,
+    "created_at" TEXT NOT NULL,
+
+    CONSTRAINT "task_images_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -145,3 +156,13 @@ CREATE INDEX "submissions_student_id_task_id_idx" ON "submissions"("student_id",
 
 -- CreateIndex
 CREATE INDEX "activity_contest_id_idx" ON "activity"("contest_id");
+
+-- AddForeignKey
+ALTER TABLE "reset_tokens" ADD CONSTRAINT "reset_tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "rounds" ADD CONSTRAINT "rounds_contest_id_fkey" FOREIGN KEY ("contest_id") REFERENCES "contests"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_round_id_fkey" FOREIGN KEY ("round_id") REFERENCES "rounds"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

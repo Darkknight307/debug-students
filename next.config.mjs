@@ -2,8 +2,6 @@
 const nextConfig = {
   // Үй қалтасында бөгде package-lock.json бар — түбірді нақты көрсетеміз
   outputFileTracingRoot: import.meta.dirname,
-  // libSQL (Turso) клиенті бумаға жиналмай, node_modules-тен жүктеледі; native `libsql` тек жергілікті тесттерде керек
-  serverExternalPackages: ["@prisma/adapter-libsql", "@libsql/client", "libsql"],
   // E2E тесті өз build қалтасын қолданады — қатар жүрген dev-сервердің .next-ін бұзбасын
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   // Лендинг пен лидерборд әзірге статикалық HTML күйінде қалады (public/).

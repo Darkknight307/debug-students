@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Тіркелу мен кірудің толық ағыны: нақты Next.js сервері + Store (E2E_DRIVER=memory|sqlite|libsql), хаттар — тест outbox-ында.
+# Тіркелу мен кірудің толық ағыны: нақты Next.js сервері + Store (E2E_DRIVER=memory|postgres), хаттар — тест outbox-ында.
 # Іске қосу: bash tests/auth/e2e.sh
 set -u
 cd "$(dirname "$0")/../.."
 DRIVER="${E2E_DRIVER:-memory}"
-case "$DRIVER" in memory) APP_PORT=3100;; sqlite) APP_PORT=3110;; *) APP_PORT=3120;; esac
+case "$DRIVER" in memory) APP_PORT=3100;; *) APP_PORT=3110;; esac
 B="http://127.0.0.1:$APP_PORT"
 TMP="$(mktemp -d)"
 JAR="$TMP/cookies.txt"
@@ -27,9 +27,9 @@ REG='{"lastName":"  Серіков ","firstName":"Айдос","university":"Мо
 cleanup() { kill "$APP_PID" 2>/dev/null; pkill -f "next dev -p $APP_PORT" 2>/dev/null; rm -rf "$TMP"; }
 trap cleanup EXIT
 
-DB_ENV="DB_DRIVER=memory"; [ "$DRIVER" = sqlite ] && DB_ENV="DB_DRIVER=sqlite DATABASE_URL=${E2E_DATABASE_URL}"; [ "$DRIVER" = libsql ] && DB_ENV="DB_DRIVER=sqlite TURSO_DATABASE_URL=${E2E_DATABASE_URL}"
+DB_ENV="DB_DRIVER=memory"; [ "$DRIVER" = postgres ] && DB_ENV="DB_DRIVER=postgres DATABASE_URL=${E2E_DATABASE_URL}"
 # Әзірлеушінің .env-і тест серверіне кірмесін (#63): мінезді өзгертетін айнымалылар анық беріледі
-env CRON_SECRET= AUTH_EMAILS_ENABLED= TURSO_DATABASE_URL= TURSO_AUTH_TOKEN= $DB_ENV E2E_TEST_HOOKS=1 NEXT_PUBLIC_SITE_URL="$B" ADMIN_EMAIL=admin@mock.test ADMIN_PASSWORD=admin-pass-123 \
+env CRON_SECRET= AUTH_EMAILS_ENABLED= POSTGRES_PRISMA_URL= $DB_ENV E2E_TEST_HOOKS=1 NEXT_PUBLIC_SITE_URL="$B" ADMIN_EMAIL=admin@mock.test ADMIN_PASSWORD=admin-pass-123 \
   SESSION_SECRET="e2e-secret-e2e-secret-e2e-secret-000" NEXT_DIST_DIR="node_modules/.cache/next-e2e-auth-$DRIVER" \
   npx next dev -p "$APP_PORT" > "$TMP/app.log" 2>&1 & APP_PID=$!
 

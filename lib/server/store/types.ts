@@ -2,7 +2,7 @@
  * Сақтау қабатының жалғыз интерфейсі. Бэкенд (lib/server/*) дерекқорды тек осы арқылы көреді.
  * Екі іске асыру бірдей контракт тесттерінен өтеді (tests/store/contract.test.mts):
  *   MemoryStore  — жадта (DB_DRIVER=memory: тесттер, жылдам іске қосу)
- *   PrismaStore  — Prisma ORM → SQLite (DB_DRIVER=sqlite, әдепкі)
+ *   PrismaStore  — Prisma ORM → PostgreSQL (DB_DRIVER=postgres, әдепкі)
  * Бизнес-ережелер (рейтинг, кезең терезелері, start/extend/close) мұнда емес — lib/contest/logic.ts пен сервистерде.
  */
 import type { AdminContest, AdminRound, AdminTask } from "../../client/types";
@@ -72,7 +72,7 @@ export type TableName = "users" | "contests" | "rounds" | "tasks" | "submissions
 export type Dump = Record<TableName, Record<string, unknown>[]>;
 
 export interface Store {
-  readonly driver: "memory" | "sqlite";
+  readonly driver: "memory" | "postgres";
 
   /* users */
   createUser(u: NewUser): Promise<UserRow>;

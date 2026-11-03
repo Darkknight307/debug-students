@@ -1,32 +1,17 @@
-// Store контракты: әр жағдай MemoryStore-да ЖӘНЕ PrismaStore-да (уақытша SQLite файлы) бірдей орындалады.
+// Store контракты: әр жағдай MemoryStore-да ЖӘНЕ PrismaStore-да (Postgres, уақытша схема) бірдей орындалады.
 import assert from "node:assert/strict";
 import { describe, test, before, after } from "node:test";
-import { execSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
-import { PrismaLibSQL } from "@prisma/adapter-libsql";
-import { createClient } from "@libsql/client";
-import { migrateLibsql } from "../../lib/server/libsqlMigrate.ts";
 import { MemoryStore } from "../../lib/server/store/memory.ts";
 import { PrismaStore } from "../../lib/server/store/prisma.ts";
 import { ConflictError, isConflict, type Store } from "../../lib/server/store/types.ts";
+import { dropSchema, freshSchema } from "../pgSchema.mts";
 
-const dir = mkdtempSync(join(tmpdir(), "debug-store-"));
-const url = `file:${join(dir, "contract.db")}`;
-execSync("npx prisma migrate deploy", { env: { ...process.env, DATABASE_URL: url }, stdio: "ignore" });
+const url = freshSchema("contract");
 const prisma = new PrismaClient({ datasourceUrl: url });
-// Үшінші нұсқа: Turso-дағыдай libSQL адаптері арқылы (жергілікті libSQL файлы, миграциялар — біздің runner)
-const libsqlUrl = `file:${join(dir, "libsql.db")}`;
-const migrator = createClient({ url: libsqlUrl });
-await migrateLibsql(migrator);
-migrator.close();
-const prismaLibsql = new PrismaClient({ adapter: new PrismaLibSQL({ url: libsqlUrl }) });
 after(async () => {
   await prisma.$disconnect();
-  await prismaLibsql.$disconnect();
-  rmSync(dir, { recursive: true, force: true });
+  await dropSchema(url);
 });
 
 const user = (email: string, extra: Record<string, unknown> = {}) => ({
@@ -43,7 +28,7 @@ const task = (round_id: string, idx: number, variant: "A" | "B" | null = null) =
   variant, image_url: null, entry: null, max_changed_lines: null, forbidden: ["set("], ai_refs: [], tests_public: [{ args: [[1]], expected: "1" }], tests_hidden: [],
 });
 
-for (const [name, make] of [["MemoryStore", () => new MemoryStore()], ["PrismaStore (SQLite)", () => new PrismaStore(prisma)], ["PrismaStore (libSQL адаптері)", () => new PrismaStore(prismaLibsql)]] as [string, () => Store][]) {
+for (const [name, make] of [["MemoryStore", () => new MemoryStore()], ["PrismaStore (Postgres)", () => new PrismaStore(prisma)]] as [string, () => Store][]) {
   describe(name, () => {
     let s: Store;
     before(async () => {
@@ -130,6 +115,32 @@ for (const [name, make] of [["MemoryStore", () => new MemoryStore()], ["PrismaSt
       const img = await s.getImage("11111111-1111-4111-8111-111111111111");
       assert.deepEqual([img?.mime, [...(img?.data ?? [])]], ["image/png", [137, 80, 78, 71]]);
       assert.equal(await s.getImage("nope"), null);
+    });
+
+    test("қатар келген екі createTask (сол кезең, нөмір, null нұсқа): біреуі сақталады, екіншісі ConflictError (P50-3)", async () => {
+      const [c] = await s.listContests();
+      const [, r2] = await s.listRounds(c.id);
+      const res = await Promise.allSettled([s.createTask(task(r2.id, 7)), s.createTask(task(r2.id, 7))]);
+      assert.deepEqual(res.map((r) => r.status).sort(), ["fulfilled", "rejected"]);
+      assert.ok(isConflict((res.find((r) => r.status === "rejected") as PromiseRejectedResult).reason));
+      assert.equal((await s.listTasks([r2.id])).filter((t) => t.idx === 7).length, 1);
+    });
+
+    test("reset токенін қатар екі рет алу: біреуі токенді, екіншісі null алады, қате жоқ (P50-4)", async () => {
+      const u = (await s.userByEmail("b@mock.test"))!;
+      await s.addResetToken({ token_hash: "h2", user_id: u.id, expires_at: "2099-01-01T00:00:00.000Z" });
+      const got = await Promise.all([s.takeResetToken("h2"), s.takeResetToken("h2")]);
+      assert.deepEqual(got.map((t) => t?.user_id ?? null).sort(), [null, u.id].sort());
+    });
+
+    test("seed анық id-мен жіберілім қосса, келесі addSubmission id-і одан үлкен (P50-5)", async () => {
+      const [c] = await s.listContests();
+      const [r1] = await s.listRounds(c.id);
+      const u = (await s.userByEmail("b@mock.test"))!;
+      const row = { contest_id: c.id, round_id: r1.id, task_id: "t", student_id: u.id, answer: "a", code: null, is_correct: true, points: 1, reason: null, created_at: "2026-10-20T10:00:03.000Z" };
+      await s.seed({ submissions: [{ ...row, id: 500 }] as never });
+      const next = await s.addSubmission({ ...row, created_at: "2026-10-20T10:00:04.000Z" });
+      assert.ok(next.id > 500, String(next.id));
     });
 
     test("тест ілмектері: dump хэшсіз, patch, seed кестені алмастырады, reset", async () => {

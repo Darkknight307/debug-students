@@ -1,10 +1,10 @@
-// Әкімші API-ының толық ағыны: нақты Next.js сервері + Store (E2E_DRIVER=memory|sqlite).
+// Әкімші API-ының толық ағыны: нақты Next.js сервері + Store (E2E_DRIVER=memory|postgres).
 // Іске қосу: node tests/admin/e2e.mjs
 import { spawn } from "node:child_process";
 
 const DRIVER = process.env.E2E_DRIVER || "memory";
-const APP = `http://127.0.0.1:${{ memory: 3104, sqlite: 3114, libsql: 3124 }[DRIVER]}`;
-const DB_ENV = DRIVER === "memory" ? { DB_DRIVER: "memory" } : DRIVER === "libsql" ? { DB_DRIVER: "sqlite", TURSO_DATABASE_URL: process.env.E2E_DATABASE_URL } : { DB_DRIVER: "sqlite", DATABASE_URL: process.env.E2E_DATABASE_URL };
+const APP = `http://127.0.0.1:${{ memory: 3104, postgres: 3114 }[DRIVER]}`;
+const DB_ENV = DRIVER === "memory" ? { DB_DRIVER: "memory" } : { DB_DRIVER: "postgres", DATABASE_URL: process.env.E2E_DATABASE_URL };
 let pass = 0, fail = 0;
 const ok = (m) => { pass++; console.log("  ✓ " + m); };
 const bad = (m, d) => { fail++; console.log("  ✗ " + m + " — " + d); };
@@ -14,7 +14,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const app = spawn("npx", ["next", "dev", "-p", APP.split(":").pop()], {
   stdio: "ignore",
   // Әзірлеушінің .env-і тест серверіне кірмесін (#63): мінезді өзгертетін айнымалылар анық беріледі
-  env: { ...process.env, CRON_SECRET: "", AUTH_EMAILS_ENABLED: "", TURSO_DATABASE_URL: "", TURSO_AUTH_TOKEN: "", ...DB_ENV, E2E_TEST_HOOKS: "1", ADMIN_EMAIL: "admin@mock.test", ADMIN_PASSWORD: "admin-pass-123", SESSION_SECRET: "e2e-secret-e2e-secret-e2e-secret-000", NEXT_DIST_DIR: "node_modules/.cache/next-e2e-admin-" + DRIVER },
+  env: { ...process.env, CRON_SECRET: "", AUTH_EMAILS_ENABLED: "", POSTGRES_PRISMA_URL: "", ...DB_ENV, E2E_TEST_HOOKS: "1", ADMIN_EMAIL: "admin@mock.test", ADMIN_PASSWORD: "admin-pass-123", SESSION_SECRET: "e2e-secret-e2e-secret-e2e-secret-000", NEXT_DIST_DIR: "node_modules/.cache/next-e2e-admin-" + DRIVER },
   detached: true,
 });
 process.on("exit", () => { try { process.kill(-app.pid); } catch {} });

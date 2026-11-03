@@ -8,13 +8,16 @@ import {
 } from "./types";
 
 /**
- * Prisma ORM арқылы SQLite (DB_DRIVER=sqlite, DATABASE_URL=file:./dev.db). MemoryStore-мен бірдей контрактты
- * орындайды (tests/store/contract.test.mts). Prisma DBMS-тен тәуелсіз — Postgres-ке ауысу схемадағы провайдер.
+ * Prisma ORM арқылы PostgreSQL (DB_DRIVER=postgres, DATABASE_URL=postgresql://…). MemoryStore-мен бірдей контрактты
+ * орындайды (tests/store/contract.test.mts). Postgres-тің SQLite-тен айырмасы ескерілген: NULL сұрыптауда соңында
+ * тұрады, READ COMMITTED «тексер → жаз» жұбын реттемейді, SERIAL анық берілген id-ден кейін өзі жылжымайды.
  */
 
 const now = () => new Date().toISOString();
 const publicUser = ({ password_hash: _p, ...u }: UserSecret): UserRow => u as UserRow;
 const isUnique = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
+// P2034 — SERIALIZABLE транзакциялар қақтығысы (Postgres 40001): транзакцияны қайталау керек
+const isSerialization = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2034";
 
 type TaskRecord = Prisma.TaskGetPayload<object>;
 const toTask = (t: TaskRecord): AdminTask => ({
@@ -35,8 +38,19 @@ const toRound = (r: Prisma.RoundGetPayload<object>) => r as unknown as AdminRoun
 const toContest = (c: Prisma.ContestGetPayload<object>) => c as unknown as AdminContest;
 
 export class PrismaStore implements Store {
-  readonly driver = "sqlite" as const;
+  readonly driver = "postgres" as const;
   constructor(private db: PrismaClient) {}
+
+  /** «Тексер → жаз» транзакциясы: SERIALIZABLE, қатар келген сұраныспен қақтығысса — қайталанады (екіншісі жазбаны көреді). */
+  private async serializable<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await this.db.$transaction(fn, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      } catch (e) {
+        if (!isSerialization(e) || attempt >= 5) throw e;
+      }
+    }
+  }
 
   /* users */
   async createUser(u: NewUser) {
@@ -62,7 +76,7 @@ export class PrismaStore implements Store {
   async listStudents({ limit, nameLike, order }: { limit?: number; nameLike?: string; order: "newest" | "name" }) {
     const orderBy = order === "newest" ? { first_login_at: "desc" as const } : { full_name: "asc" as const };
     if (!nameLike) return (await this.db.user.findMany({ where: { role: "student" }, orderBy, ...(limit ? { take: limit } : {}) })).map((u) => publicUser(u as UserSecret));
-    // SQLite-тің LIKE/contains-ы кирилл әріптерінде регистрді ескереді — регистрсіз іздеуді осында жасаймыз
+    // Postgres-тің ILIKE-ы кирилл әріптерін дерекқор локаліне қарай салыстырады — регистрсіз іздеуді осында жасаймыз
     const q = nameLike.toLowerCase();
     const all = await this.db.user.findMany({ where: { role: "student" }, orderBy });
     return all.filter((u) => u.full_name.toLowerCase().includes(q)).slice(0, limit ?? all.length).map((u) => publicUser(u as UserSecret));
@@ -83,8 +97,9 @@ export class PrismaStore implements Store {
     return this.db.$transaction(async (tx) => {
       const t = await tx.resetToken.findUnique({ where: { token_hash: tokenHash } });
       if (!t) return null;
-      await tx.resetToken.delete({ where: { token_hash: tokenHash } });
-      return t;
+      // Қатар келген екінші сұраныс жолды бірінші өшіргенше күтеді, сосын 0 жол көреді — токен бір-ақ рет жұмыс істейді
+      const { count } = await tx.resetToken.deleteMany({ where: { token_hash: tokenHash } });
+      return count ? t : null;
     });
   }
 
@@ -128,27 +143,28 @@ export class PrismaStore implements Store {
   }
   async listTasks(roundIds: string[]) {
     if (!roundIds.length) return [];
-    const rows = await this.db.task.findMany({ where: { round_id: { in: roundIds } }, orderBy: [{ idx: "asc" }, { variant: "asc" }] });
+    // Postgres-те NULL әдепкіде соңында — «бәріне ортақ» (null) тапсырма MemoryStore-дағыдай A/B-дан бұрын тұрсын
+    const rows = await this.db.task.findMany({ where: { round_id: { in: roundIds } }, orderBy: [{ idx: "asc" }, { variant: { sort: "asc", nulls: "first" } }] });
     return rows.map(toTask);
   }
   async getTask(id: string) {
     const t = await this.db.task.findUnique({ where: { id } });
     return t ? toTask(t) : null;
   }
-  /** (кезең, нөмір, нұсқа) — SQLite unique индексінде NULL-дар бірдей саналмайды, сондықтан транзакцияда тексереміз. */
+  /** (кезең, нөмір, нұсқа) — unique индексте NULL-дар бірдей саналмайды, сондықтан SERIALIZABLE транзакцияда тексереміз. */
   private async taken(tx: Prisma.TransactionClient, k: { round_id: string; idx: number; variant: string | null }, exceptId?: string) {
     const hit = await tx.task.findFirst({ where: { round_id: k.round_id, idx: k.idx, variant: k.variant ?? null, ...(exceptId ? { NOT: { id: exceptId } } : {}) } });
     return !!hit;
   }
   async createTask(t: NewTask) {
-    return this.db.$transaction(async (tx) => {
+    return this.serializable(async (tx) => {
       if (await this.taken(tx, t)) throw new ConflictError("task exists");
       const row = await tx.task.create({ data: { ...(taskData(t) as Prisma.TaskUncheckedCreateInput), id: t.id ?? crypto.randomUUID() } });
       return toTask(row);
     });
   }
   async updateTask(id: string, patch: Partial<Omit<AdminTask, "id">>) {
-    return this.db.$transaction(async (tx) => {
+    return this.serializable(async (tx) => {
       const cur = await tx.task.findUnique({ where: { id } });
       if (!cur) return null;
       const next = { round_id: patch.round_id ?? cur.round_id, idx: patch.idx ?? cur.idx, variant: patch.variant !== undefined ? patch.variant : cur.variant };
@@ -196,7 +212,13 @@ export class PrismaStore implements Store {
   }
   async upsertActivity(a: ActivityRow) {
     const data = { ...a, data: a.data as Prisma.InputJsonValue };
-    await this.db.activity.upsert({ where: { round_id_student_id: { round_id: a.round_id, student_id: a.student_id } }, create: data, update: data });
+    const where = { round_id_student_id: { round_id: a.round_id, student_id: a.student_id } };
+    try {
+      await this.db.activity.upsert({ where, create: data, update: data });
+    } catch (e) {
+      if (!isUnique(e)) throw e;
+      await this.db.activity.update({ where, data }); // екі қойындыдан қатар келді — екіншісі жаңартады
+    }
   }
   async listActivity(contestId: string) {
     return (await this.db.activity.findMany({ where: { contest_id: contestId } })) as ActivityRow[];
@@ -239,6 +261,11 @@ export class PrismaStore implements Store {
         await this.model(t).create({ data: r });
       }
     }
+    if (data.submissions?.length) await this.syncSubmissionIds();
+  }
+  /** id-лері анық берілген жіберілімдерден кейін SERIAL тізбегін ең үлкен id-ден әрі жылжытады (келесі INSERT қақтығыспасын). */
+  async syncSubmissionIds() {
+    await this.db.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('submissions', 'id'), COALESCE((SELECT MAX(id) FROM submissions), 0) + 1, false)`);
   }
   async dump(): Promise<Dump> {
     const out: Partial<Dump> = {};
