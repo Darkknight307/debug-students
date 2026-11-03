@@ -1,0 +1,146 @@
+# CI/CD (#57): әр push пен pull request барлық тестті жүргізеді; main-ге push тесттер өтсе AWS-ке қайта деплой жасайды.
+# Vercel main-ді өзінің GitHub интеграциясымен бөлек деплойлайды.
+name: CI/CD
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  TEST_DATABASE_URL: postgresql://debug:debug@localhost:5432/debug
+
+jobs:
+  unit:
+    name: Unit · frontend · contract · store (Postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env: { POSTGRES_USER: debug, POSTGRES_PASSWORD: debug, POSTGRES_DB: debug }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U debug -d debug" --health-interval 3s --health-timeout 5s --health-retries 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
+      - run: npm ci
+      - run: npm test
+
+  api-e2e:
+    name: API e2e (memory + postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env: { POSTGRES_USER: debug, POSTGRES_PASSWORD: debug, POSTGRES_DB: debug }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U debug -d debug" --health-interval 3s --health-timeout 5s --health-retries 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
+      - run: npm ci
+      - run: npm run test:e2e
+
+  build:
+    name: Type check + production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
+      - run: npm ci
+      - run: npm run build
+
+  docker-e2e:
+    name: Docker Compose + Playwright (desktop + 375 px)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
+      - run: npm ci
+      - uses: docker/setup-buildx-action@v4
+      - name: Build the image (layers cached between runs)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: debug-students:dev
+          build-args: APP_VERSION=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - run: npx playwright install --with-deps chromium
+      - name: Compose up (app + Postgres) → Playwright → down
+        run: npm run test:pw:compose
+        env: { E2E_NO_BUILD: "1" }
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with: { name: playwright-report, path: playwright-report, retention-days: 7 }
+
+  infra-lint:
+    name: CloudFormation lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with: { python-version: "3.12" }
+      - run: pip install --quiet cfn-lint
+      - run: cfn-lint infra/aws/stack.yml
+
+  deploy:
+    name: Deploy to AWS (EC2 · Docker Compose)
+    needs: [unit, api-e2e, build, docker-e2e, infra-lint]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency: { group: deploy-production, cancel-in-progress: false }
+    permissions:
+      contents: read
+      id-token: write # GitHub OIDC → AWS рөлі, сақталған кілт жоқ
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ECR_REPOSITORY_URI: ${{ vars.ECR_REPOSITORY_URI }}
+      INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - name: AWS configured?
+        id: cfg
+        run: |
+          if [ -z "${{ vars.AWS_DEPLOY_ROLE_ARN }}" ] || [ -z "$ECR_REPOSITORY_URI" ] || [ -z "$INSTANCE_ID" ]; then
+            echo "::notice title=Deploy skipped::AWS is not configured yet — set repository variables AWS_DEPLOY_ROLE_ARN, AWS_REGION, ECR_REPOSITORY_URI, EC2_INSTANCE_ID, SITE_URL (infra/aws/README.md)."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7
+        if: steps.cfg.outputs.skip != 'true'
+      - uses: aws-actions/configure-aws-credentials@v6
+        if: steps.cfg.outputs.skip != 'true'
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+        if: steps.cfg.outputs.skip != 'true'
+      - uses: docker/setup-buildx-action@v4
+        if: steps.cfg.outputs.skip != 'true'
+      - name: Build and push linux/amd64 image to ECR
+        if: steps.cfg.outputs.skip != 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          provenance: false
+          tags: ${{ vars.ECR_REPOSITORY_URI }}:${{ github.sha }},${{ vars.ECR_REPOSITORY_URI }}:latest
+          build-args: APP_VERSION=${{ github.sha }}
+          cache-from: type=gha
+      - name: Roll out over SSM and wait for /api/health = this commit
+        if: steps.cfg.outputs.skip != 'true'
+        run: bash infra/aws/deploy.sh "$ECR_REPOSITORY_URI:${{ github.sha }}" "${{ github.sha }}"
