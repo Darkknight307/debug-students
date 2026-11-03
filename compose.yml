@@ -1,0 +1,51 @@
+# DEBUG · Студенттер — толық стек (#65): сайт бейнесі (Dockerfile: статика + API) + PostgreSQL.
+#   cp .env.example .env            # SESSION_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD толтырыңыз
+#   docker compose up --build       # → http://localhost:3000
+#   docker compose down             # тоқтату, дерек сақталады  ·  docker compose down -v — дерек өшеді
+#   npm run db:up                   # тек Postgres (npm run dev үшін), 127.0.0.1:${DB_PORT:-5432}
+name: debug-students
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: debug
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-debug}
+      POSTGRES_DB: debug
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # Тек осы компьютерден (npm run dev, тесттер); желіге ашылмайды
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U debug -d debug"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
+    image: debug-students:${APP_VERSION:-dev}
+    # SESSION_SECRET, ADMIN_*, AUTH_EMAILS_ENABLED … — .env-тен (бар болса)
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # .env-тегі localhost URL контейнерге кірмесін (#63 сияқты): дерекқор — осы стектегі db
+      DB_DRIVER: postgres
+      DATABASE_URL: postgresql://debug:${POSTGRES_PASSWORD:-debug}@db:5432/debug
+      POSTGRES_PRISMA_URL: ""
+      SEED_ON_START: ${SEED_ON_START:-1}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:

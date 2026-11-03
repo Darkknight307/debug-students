@@ -1,0 +1,19 @@
+# Playwright мен CI үшін (#56, #57): бөлек жоба, бөлек порт, тест ілмектері қосулы, әзірлеушінің .env-і кірмейді.
+#   docker compose -p debug-e2e -f compose.yml -f compose.e2e.yml up -d --build --wait   (немесе: npm run test:pw:compose)
+services:
+  db:
+    ports: !reset []
+  app:
+    env_file: !reset []
+    environment:
+      E2E_TEST_HOOKS: "1"
+      # Тек тестке арналған мәндер — нағыз құпия емес
+      SESSION_SECRET: e2e-secret-e2e-secret-e2e-secret-000
+      ADMIN_EMAIL: admin@mock.test
+      ADMIN_PASSWORD: admin-pass-123
+      AUTH_EMAILS_ENABLED: "1"
+      CRON_SECRET: ""
+      NEXT_PUBLIC_SITE_URL: ""
+      SEED_ON_START: "0"
+    ports: !override
+      - "${E2E_PORT:-3300}:3000"

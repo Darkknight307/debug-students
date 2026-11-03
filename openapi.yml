@@ -39,6 +39,13 @@ components:
       type: object
       required: [ok]
       properties: { ok: { type: boolean, const: true } }
+    Health:
+      type: object
+      required: [ok, db, version]
+      properties:
+        ok: { type: boolean }
+        db: { type: string, enum: [up, down] }
+        version: { type: string, description: "APP_VERSION of the image (git SHA) or dev" }
     TestCase:
       type: object
       required: [args, expected]
@@ -223,6 +230,13 @@ paths:
       responses:
         "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Ok" } } } }
         "401": { $ref: "#/components/responses/Error" }
+  /api/health:
+    get:
+      tags: [public]
+      summary: Health check for Docker, Compose and deploys — database reachable and the running image version (git SHA)
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } } }
+        "503": { description: Database unreachable, content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } } }
   /api/images/{id}:
     get:
       tags: [public]
