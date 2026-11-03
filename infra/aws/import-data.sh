@@ -23,6 +23,7 @@ ssm_run "set -uo pipefail
 cd /opt/debug
 umask 077
 base64 -d import.b64 | gunzip > import.json && rm -f import.b64
+chown 1000:1000 import.json  # контейнерде импорт root емес node (uid 1000) атынан жүреді; файл бәрібір 600
 docker compose run --rm --no-deps -v /opt/debug/import.json:/tmp/import.json:ro app node /app/prisma/import-data.mjs --from /tmp/import.json
 code=\$?
 rm -f import.json
