@@ -10,6 +10,13 @@ Parameters:
     Type: String
     Default: Darkknight307/debug-students
     Description: owner/name — only pushes to main of this repository may deploy
+  GitHubOidcSubjectPrefix:
+    Type: String
+    Default: repo:Darkknight307/debug-students
+    Description: >-
+      Subject prefix of this repository's GitHub OIDC tokens. Repositories with immutable subjects use
+      repo:OWNER@OWNER_ID/REPO@REPO_ID (gh api repos/OWNER/REPO/actions/oidc/customization/sub, sub_claim_prefix);
+      infra/aws/bootstrap.sh passes it automatically
   InstanceType:
     Type: String
     Default: t3.micro
@@ -275,7 +282,10 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubRepo}:ref:refs/heads/main
+                # Ескі (repo:OWNER/REPO) және immutable (repo:OWNER@ID/REPO@ID) пішімдер — екеуінде де тек main
+                token.actions.githubusercontent.com:sub:
+                  - !Sub repo:${GitHubRepo}:ref:refs/heads/main
+                  - !Sub ${GitHubOidcSubjectPrefix}:ref:refs/heads/main
       Policies:
         - PolicyName: push-image
           PolicyDocument:
