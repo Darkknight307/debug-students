@@ -13,9 +13,10 @@ export type ContestRow = AdminContest;
 export type RoundRow = AdminRound;
 export type TaskRow = AdminTask;
 
-const g = globalThis as unknown as { __debugMemo?: Map<string, { at: number; v: Promise<unknown> }> };
-const variantMemo = new Map<string, "A" | "B">();
+// globalThis-те: Next.js әр маршрутты бөлек бума етеді, clearContestCaches() барлық маршруттың кэшін тазартсын (#84)
+const g = globalThis as unknown as { __debugMemo?: Map<string, { at: number; v: Promise<unknown> }>; __debugVariants?: Map<string, "A" | "B"> };
 const memo = () => (g.__debugMemo ??= new Map());
+const variants = () => (g.__debugVariants ??= new Map());
 
 function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T> {
   const now = Date.now();
@@ -30,7 +31,7 @@ function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T>
 /** Әкімші өзгерткенде (жарыс, кезең, тапсырма, ұзарту) — келесі сұраныс жаңа дерек алады. */
 export function clearContestCaches() {
   memo().clear();
-  variantMemo.clear();
+  variants().clear();
 }
 
 /** Ағымдағы жарыс: алдымен «жүріп жатыр» (ең кеші), болмаса ең жақын «жарияланды». */
@@ -87,13 +88,13 @@ export async function findOpenTask(ctx: Context, taskId: string): Promise<{ wind
 /** Trace A/B нұсқасы: алғаш сұралғанда кездейсоқ беріледі және сол жарыста өзгермейді (бірінші жазба жеңеді). */
 export async function variantFor(contestId: string, studentId: string): Promise<"A" | "B"> {
   const key = `${contestId}:${studentId}`;
-  const hit = variantMemo.get(key);
+  const hit = variants().get(key);
   if (hit) return hit;
   const store = getStore();
   const v =
     (await store.getVariant(contestId, studentId)) ??
     (await store.addVariantIfAbsent({ contest_id: contestId, student_id: studentId, variant: Math.random() < 0.5 ? "A" : "B" }));
-  variantMemo.set(key, v.variant);
+  variants().set(key, v.variant);
   return v.variant;
 }
 

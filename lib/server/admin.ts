@@ -3,12 +3,14 @@ import { hashPassword } from "./password";
 import { HttpError } from "./route";
 import { clearContestCaches } from "../contest/server";
 import { clearRankingCache } from "../contest/ranking";
+import { clearLandingCache } from "./landing";
 import type { AdminContest, AdminTask, TestCase } from "../client/types";
 
 /** Әкімші жазбаларынан кейін студенттер жаңа деректі ≤ 1 сұраныста көрсін. */
 export function afterWrite() {
   clearContestCaches();
   clearRankingCache();
+  clearLandingCache();
 }
 
 /** ADMIN_EMAIL / ADMIN_PASSWORD берілсе және мұндай аккаунт жоқ болса — әкімшіні құрады (бір рет). */

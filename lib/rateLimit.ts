@@ -7,7 +7,9 @@
  */
 
 type Bucket = { count: number; resetAt: number };
-const buckets = new Map<string, Bucket>();
+// globalThis-те: Next.js әр маршрутты бөлек бума етеді — тест ілмегінің clearAllLimits() бәріне жетсін (#84)
+const g = globalThis as unknown as { __debugLimits?: Map<string, Bucket> };
+const buckets = (g.__debugLimits ??= new Map<string, Bucket>());
 
 export function tooManyFailures(key: string, limit: number, now = Date.now()): boolean {
   const b = buckets.get(key);
@@ -25,6 +27,10 @@ export function recordFailure(key: string, windowMs: number, now = Date.now()): 
 
 export function clearFailures(key: string): void {
   buckets.delete(key);
+}
+/** Тек тест ілмегі үшін (E2E_TEST_HOOKS=1, reset): алдыңғы тесттің санағыштары келесі тестке әсер етпесін. */
+export function clearAllLimits(): void {
+  buckets.clear();
 }
 
 /** Әр әрекетті санайды: шекке жетсе true (бұл әрекет саналмайды), әйтпесе санап, false қайтарады. */
