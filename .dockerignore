@@ -1,0 +1,24 @@
+# Бейнеге тек құрастыруға керегі кіреді (#64): құпиялар, жергілікті кэш, тест нәтижелері — жоқ
+.env*
+!.env.example
+.git
+.github
+.vercel
+.next
+node_modules
+**/node_modules
+*.db
+*.db-journal
+coverage
+playwright-report
+test-results
+blob-report
+docs
+_docs
+chat-brainstorm.md
+infra
+e2e
+tests
+*.log
+.DS_Store
+playwright.config.ts

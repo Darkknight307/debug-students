@@ -2,6 +2,14 @@
 const nextConfig = {
   // Үй қалтасында бөгде package-lock.json бар — түбірді нақты көрсетеміз
   outputFileTracingRoot: import.meta.dirname,
+  // Docker бейнесі (#64): бір Node процесі — standalone сервер. Vercel құрастыруы бұрынғыдай (айнымалы тек Dockerfile-да)
+  ...(process.env.NEXT_OUTPUT === "standalone"
+    ? {
+        output: "standalone",
+        // Бейнеге runtime-да керек емес файлдар кірмейді: next/image қолданылмайды (sharp), тип тексеру — тек құрастыруда
+        outputFileTracingExcludes: { "*": ["node_modules/sharp/**", "node_modules/@img/**", "node_modules/typescript/**"] },
+      }
+    : {}),
   // E2E тесті өз build қалтасын қолданады — қатар жүрген dev-сервердің .next-ін бұзбасын
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   // Лендинг пен лидерборд әзірге статикалық HTML күйінде қалады (public/).
