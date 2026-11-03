@@ -1,0 +1,337 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  DEBUG · Студенттер — production on AWS free tier (#68): one EC2 t3.micro runs Docker Compose
+  (Caddy HTTPS on <ip>.sslip.io → app image from ECR → PostgreSQL on its own EBS volume).
+  CI deploys through GitHub OIDC + SSM; no SSH, no stored keys, no secrets in this template.
+  Delete everything with: aws cloudformation delete-stack --stack-name <name>
+
+Parameters:
+  GitHubRepo:
+    Type: String
+    Default: Darkknight307/debug-students
+    Description: owner/name — only pushes to main of this repository may deploy
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues: [t3.micro, t2.micro]
+    Description: Free-tier eligible sizes only
+  AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+  CreateGitHubOidcProvider:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: "false if the account already has token.actions.githubusercontent.com"
+  AlertEmail:
+    Type: String
+    Default: ""
+    Description: Optional — e-mail for a monthly AWS Budget alert (budgets are free)
+  MonthlyBudgetUsd:
+    Type: Number
+    Default: 5
+    MinValue: 1
+
+Conditions:
+  CreateOidc: !Equals [!Ref CreateGitHubOidcProvider, "true"]
+  HasAlertEmail: !Not [!Equals [!Ref AlertEmail, ""]]
+
+Resources:
+  # ---------- network: own VPC, one public subnet, only 80/443 open ----------
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.42.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags: [{ Key: Name, Value: !Ref AWS::StackName }]
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags: [{ Key: Name, Value: !Ref AWS::StackName }]
+
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.42.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: false
+      Tags: [{ Key: Name, Value: !Sub "${AWS::StackName}-public" }]
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags: [{ Key: Name, Value: !Ref AWS::StackName }]
+
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRoute:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref RouteTable
+
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: HTTP and HTTPS only (no SSH - use SSM Session Manager)
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0, Description: "HTTP: redirect to HTTPS and ACME challenge" }
+        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0, Description: "HTTPS" }
+      Tags: [{ Key: Name, Value: !Ref AWS::StackName }]
+
+  # ---------- image registry ----------
+  EcrRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref AWS::StackName
+      ImageScanningConfiguration: { ScanOnPush: true }
+      EmptyOnDelete: true
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {"rules":[{"rulePriority":1,"description":"keep the last 5 images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":5},"action":{"type":"expire"}}]}
+
+  # ---------- server ----------
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: pull-app-image
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: "*"
+              - Effect: Allow
+                Action: [ecr:BatchGetImage, ecr:GetDownloadUrlForLayer, ecr:BatchCheckLayerAvailability]
+                Resource: !GetAtt EcrRepository.Arn
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref InstanceRole]
+
+  ElasticIp:
+    Type: AWS::EC2::EIP
+    DependsOn: GatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags: [{ Key: Name, Value: !Ref AWS::StackName }]
+
+  # PostgreSQL data lives here, not on the root disk: it survives an instance replacement (new AMI)
+  DataVolume:
+    Type: AWS::EC2::Volume
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
+    Properties:
+      AvailabilityZone: !GetAtt PublicSubnet.AvailabilityZone
+      Size: 10
+      VolumeType: gp3
+      Encrypted: true
+      Tags: [{ Key: Name, Value: !Sub "${AWS::StackName}-postgres" }]
+
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds: [!Ref WebSecurityGroup]
+      IamInstanceProfile: !Ref InstanceProfile
+      # T3 defaults to "unlimited" CPU credits, which can be billed — standard never charges extra
+      CreditSpecification: { CPUCredits: standard }
+      Monitoring: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs: { VolumeSize: 10, VolumeType: gp3, Encrypted: true, DeleteOnTermination: true }
+      Tags: [{ Key: Name, Value: !Ref AWS::StackName }]
+      UserData:
+        Fn::Base64: !Sub
+          - |
+            #!/bin/bash
+            # First boot (#68): swap, data volume, Docker + Compose, secrets generated HERE (never in the template).
+            set -euxo pipefail
+            exec > >(tee -a /var/log/debug-bootstrap.log) 2>&1
+
+            # 2 GB swap — t3.micro has 1 GB RAM
+            if [ ! -f /swapfile ]; then
+              dd if=/dev/zero of=/swapfile bs=1M count=2048
+              chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+              echo '/swapfile none swap sw 0 0' >> /etc/fstab
+            fi
+
+            # PostgreSQL data volume (attached by CloudFormation right after launch)
+            DEV=/dev/sdf
+            for i in $(seq 1 90); do [ -e $DEV ] && break; [ -e /dev/nvme1n1 ] && DEV=/dev/nvme1n1 && break; sleep 2; done
+            blkid $DEV || mkfs.xfs $DEV
+            UUID=$(blkid -s UUID -o value $DEV)
+            mkdir -p /data
+            grep -q "$UUID" /etc/fstab || echo "UUID=$UUID /data xfs defaults,nofail 0 2" >> /etc/fstab
+            mount -a
+            mkdir -p /data/postgres
+
+            # Docker + Compose plugin (pinned)
+            dnf install -y docker
+            systemctl enable --now docker
+            mkdir -p /usr/local/lib/docker/cli-plugins
+            curl -fsSL https://github.com/docker/compose/releases/download/v5.6.0/docker-compose-linux-x86_64 \
+              -o /usr/local/lib/docker/cli-plugins/docker-compose
+            chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+            # App folder; compose.yml and Caddyfile arrive with every deploy (infra/aws/deploy.sh)
+            mkdir -p /opt/debug
+            cd /opt/debug
+            if [ ! -f .env ]; then
+              umask 077
+              {
+                echo "SESSION_SECRET=$(openssl rand -hex 32)"
+                echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
+                echo "SITE_HOST=${SiteHost}"
+                echo "AWS_REGION=${AWS::Region}"
+                echo "APP_IMAGE=${EcrRepository.RepositoryUri}:latest"
+              } > .env
+            fi
+
+            # debug-deploy <image>: pull from ECR, restart, prune — called over SSM by CI
+            cat > /usr/local/bin/debug-deploy <<'DEPLOY'
+            #!/bin/bash
+            set -euo pipefail
+            cd /opt/debug
+            IMAGE="$1"
+            REGISTRY=$(echo "$IMAGE" | cut -d/ -f1)
+            REGION=$(grep '^AWS_REGION=' .env | cut -d= -f2)
+            aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$REGISTRY"
+            sed -i "s#^APP_IMAGE=.*#APP_IMAGE=$IMAGE#" .env
+            docker compose pull app
+            docker compose up -d --remove-orphans
+            docker logout "$REGISTRY"
+            docker image prune -af --filter "until=48h" || true
+            DEPLOY
+            chmod 755 /usr/local/bin/debug-deploy
+          - SiteHost: !Join ["", [!Join ["-", !Split [".", !Ref ElasticIp]], ".sslip.io"]]
+
+  DataVolumeAttachment:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      InstanceId: !Ref Instance
+      VolumeId: !Ref DataVolume
+      Device: /dev/sdf
+
+  EipAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt ElasticIp.AllocationId
+      InstanceId: !Ref Instance
+
+  # ---------- CI: GitHub OIDC, a role only main of the repo can assume ----------
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateOidc
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+      ThumbprintList: [6938fd4d98bab03faadb97b34396831e3780aea1, 1c58a3a8518e8759bf075b76b750d4f2df264fcd]
+
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: GitHub Actions deploy (push to main) - ECR push to one repository, SSM RunShellScript on one instance
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - CreateOidc
+                - !Ref GitHubOidcProvider
+                - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubRepo}:ref:refs/heads/main
+      Policies:
+        - PolicyName: push-image
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:BatchGetImage
+                  - ecr:CompleteLayerUpload
+                  - ecr:InitiateLayerUpload
+                  - ecr:PutImage
+                  - ecr:UploadLayerPart
+                Resource: !GetAtt EcrRepository.Arn
+        - PolicyName: roll-out
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ssm:SendCommand
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${Instance}
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}::document/AWS-RunShellScript
+              - Effect: Allow
+                Action: [ssm:GetCommandInvocation, ssm:ListCommandInvocations]
+                Resource: "*"
+
+  # ---------- cost guardrail (optional, free) ----------
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Condition: HasAlertEmail
+    Properties:
+      Budget:
+        BudgetName: !Sub "${AWS::StackName}-monthly"
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit: { Amount: !Ref MonthlyBudgetUsd, Unit: USD }
+      NotificationsWithSubscribers:
+        - Notification: { NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 50, ThresholdType: PERCENTAGE }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref AlertEmail }]
+        - Notification: { NotificationType: FORECASTED, ComparisonOperator: GREATER_THAN, Threshold: 100, ThresholdType: PERCENTAGE }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref AlertEmail }]
+
+Outputs:
+  SiteUrl:
+    Description: Public HTTPS address (Caddy + Let's Encrypt on sslip.io)
+    Value: !Join ["", ["https://", !Join ["-", !Split [".", !Ref ElasticIp]], ".sslip.io"]]
+  InstanceId:
+    Value: !Ref Instance
+  EcrRepositoryUri:
+    Value: !GetAtt EcrRepository.RepositoryUri
+  DeployRoleArn:
+    Description: Repository variable AWS_DEPLOY_ROLE_ARN
+    Value: !GetAtt DeployRole.Arn
+  Region:
+    Value: !Ref AWS::Region

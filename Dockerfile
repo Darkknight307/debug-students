@@ -25,14 +25,15 @@ COPY . .
 ENV NEXT_OUTPUT=standalone
 RUN npx prisma generate && npx next build \
  && find node_modules/.prisma .next/standalone/node_modules/.prisma -name 'libquery_engine-rhel-*' -delete
-# seed.ts → prisma/seed.mjs (tsx-пен бірге келген esbuild; пакеттер — runtime node_modules-тен)
-RUN npx esbuild prisma/seed.ts --bundle --platform=node --format=esm --target=node22 --packages=external --outfile=prisma/seed.mjs
+# seed.ts → prisma/seed.mjs, деректі көшіру (#66) → prisma/import-data.mjs (tsx-пен бірге келген esbuild; пакеттер — runtime node_modules-тен)
+RUN npx esbuild prisma/seed.ts --bundle --platform=node --format=esm --target=node22 --packages=external --outfile=prisma/seed.mjs \
+ && npx esbuild scripts/import-data.ts --bundle --platform=node --format=esm --target=node22 --packages=external --outfile=prisma/import-data.mjs
 # Prisma CLI бөлек қалтада: runtime-ға бүкіл dev node_modules кірмейді
 RUN --mount=type=cache,target=/root/.npm mkdir -p /opt/prisma-cli && cd /opt/prisma-cli \
  && echo '{"name":"prisma-cli","private":true}' > package.json \
  && npm install --no-audit --no-fund "prisma@$(node -p "require('/app/node_modules/prisma/package.json').version")"
 
-# 3. Runtime: тек standalone сервер, статика, Prisma клиенті/engine, миграциялар, seed
+# 3. Runtime: тек standalone сервер, статика, Prisma клиенті/engine, миграциялар, seed және көшіру скрипті
 FROM base AS runtime
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0
 COPY --from=build --chown=node:node /app/.next/standalone ./
@@ -41,7 +42,7 @@ COPY --from=build --chown=node:node /app/public ./public
 # Next-тің file tracing-і engine файлын әрдайым көшіре бермейді — Prisma клиентін толық қоямыз
 COPY --from=build --chown=node:node /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build --chown=node:node /app/node_modules/@prisma/client ./node_modules/@prisma/client
-COPY --from=build --chown=node:node /app/prisma/schema.prisma /app/prisma/seed.mjs ./prisma/
+COPY --from=build --chown=node:node /app/prisma/schema.prisma /app/prisma/seed.mjs /app/prisma/import-data.mjs ./prisma/
 COPY --from=build --chown=node:node /app/prisma/migrations ./prisma/migrations
 COPY --from=build --chown=node:node /app/prisma/seed-data ./prisma/seed-data
 COPY --from=build /opt/prisma-cli /opt/prisma-cli
