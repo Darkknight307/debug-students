@@ -14,3 +14,7 @@ prisma/*.db*
 .claude/
 *.tsbuildinfo
 .env*
+
+
+# Дерек экспорты (#66) — репоға кірмейді
+data-export*.json
