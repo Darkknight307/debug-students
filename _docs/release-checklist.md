@@ -8,8 +8,8 @@
 - [x] `npm run build` succeeds; `docker compose up --build` healthy with `SEED_ON_START=1` (#85)
 - [x] CI green on `main` (unit, api-e2e, build, docker-e2e, infra-lint); deploy job waits for the AWS variables
 - [x] Production data copied Turso → Neon with `npm run db:import`: users 2, contests 2, rounds 6, tasks 32, submissions 2, variants 1, activity 3 — counts equal (#67)
-- [ ] Vercel production on Neon: deployment Ready, `/api/health` db up (#67)
-- [ ] AWS stack created, CI deploy verified, data imported (#68, #57)
+- [x] Vercel production on Neon: deployment Ready, `/api/health` db up, imported data on the landing (#67; owner still removes `TURSO_*` and confirms logins)
+- [x] AWS stack created (owner ran `infra/aws/bootstrap.sh`), CI deploy verified (`/api/health` = commit SHA), data imported over SSM, HTTPS on `https://18-158-27-155.sslip.io`, ports 22/3000/5432 closed (#68, #57)
 - [x] No SQLite/libSQL code or dependency left; no secrets in the repo (`.env*` ignored)
 - [x] Every `e2e-test` and `user-test-bug` issue closed by the QA engineer
 
