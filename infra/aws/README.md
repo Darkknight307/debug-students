@@ -36,6 +36,17 @@ Never upgrade the account to a paid plan for this project.
    `aws configure` (region `eu-central-1`). The agent never types credentials.
 3. GitHub CLI logged in (`gh auth status`).
 
+## One command
+
+```bash
+npm run db:import -- --from "<current production database>" --export data-export.json   # optional: data to copy
+AWS_PROFILE=<profile> bash infra/aws/bootstrap.sh data-export.json
+```
+
+`bootstrap.sh` creates/updates the stack, sets the five repository variables, makes sure the latest `main` is deployed
+by CI (re-runs the deploy job if needed), checks `/api/health`, then imports the data file. The steps below are the
+same thing by hand.
+
 ## Create the stack
 
 ```bash
