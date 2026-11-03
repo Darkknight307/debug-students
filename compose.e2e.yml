@@ -14,6 +14,7 @@ services:
       AUTH_EMAILS_ENABLED: "1"
       CRON_SECRET: ""
       NEXT_PUBLIC_SITE_URL: ""
-      SEED_ON_START: "0"
+      # Seed іске қосылуда да жүреді (#85): бұзылған seed `up --wait`-ті құлатады; әр тест дерекқорды бәрібір тазартады
+      SEED_ON_START: "1"
     ports: !override
       - "${E2E_PORT:-3300}:3000"

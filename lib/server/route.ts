@@ -2,13 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { currentAdmin, isServerConfigured } from "./auth";
 import { isConflict } from "./store";
 import type { UserRow } from "./store";
+import { HttpError } from "./httpError";
 
-/** Маршрут қатесі: статус + студентке/әкімшіге көрсетілетін хабар. */
-export class HttpError extends Error {
-  constructor(public status: number, message: string, public extra: Record<string, unknown> = {}) {
-    super(message);
-  }
-}
+export { HttpError };
 
 export const noStore = { "Cache-Control": "no-store" };
 export const json = (body: Record<string, unknown>, status = 200) => NextResponse.json({ ok: status < 400, ...body }, { status, headers: noStore });

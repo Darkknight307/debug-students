@@ -1,6 +1,6 @@
 import { getStore, type Store } from "./store";
 import { hashPassword } from "./password";
-import { HttpError } from "./route";
+import { HttpError } from "./httpError";
 import { clearContestCaches } from "../contest/server";
 import { clearRankingCache } from "../contest/ranking";
 import { clearLandingCache } from "./landing";
