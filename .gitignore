@@ -18,3 +18,8 @@ prisma/*.db*
 
 # Дерек экспорты (#66) — репоға кірмейді
 data-export*.json
+
+# Playwright есептері (#56)
+playwright-report/
+test-results/
+blob-report/

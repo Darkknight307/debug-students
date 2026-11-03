@@ -4,13 +4,14 @@ import { hashPassword } from "../../../../lib/server/password";
 import { outbox } from "../../../../lib/server/mailer";
 import { afterWrite } from "../../../../lib/server/admin";
 import { forgetUser } from "../../../../lib/server/auth";
+import { clearAllLimits } from "../../../../lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
  * Тек e2e тесттер үшін (E2E_TEST_HOOKS=1). Әйтпесе — 404, маршрут жоқ сияқты.
- *   POST reset | seed {table: rows} | patch {table, id, set};  GET dump | outbox
+ *   POST reset (дерек + outbox + rate limit) | seed {table: rows} | patch {table, id, set};  GET dump | outbox
  * seed-те users жолдары `password` берсе, ол scrypt-пен хэштеледі.
  */
 const off = () => process.env.E2E_TEST_HOOKS !== "1";
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ action: st
   if (action === "reset") {
     await store.reset();
     outbox().length = 0;
+    clearAllLimits(); // Playwright тесттері бір IP-ден келеді — санағыштар тесттен тестке ауыспасын
   } else if (action === "seed") {
     const data = b as Record<TableName, Record<string, unknown>[]>;
     if (data.users) {

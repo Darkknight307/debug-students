@@ -9,6 +9,8 @@
     "lint": "next lint",
     "test": "tsx --test \"tests/**/*.test.mts\"",
     "test:e2e": "bash tests/e2e.sh",
+    "test:pw": "playwright test",
+    "test:pw:compose": "bash e2e/run-compose.sh",
     "dev:mock": "NEXT_PUBLIC_API_MODE=mock NEXT_DIST_DIR=node_modules/.cache/next-mockui next dev -p 3000",
     "db:up": "docker compose up -d --wait db",
     "db:deploy": "prisma migrate deploy",
@@ -32,6 +34,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/node": "^26.5.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
