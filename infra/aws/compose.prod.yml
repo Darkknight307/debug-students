@@ -1,8 +1,16 @@
-# Өндірістік стек EC2-де (#68): Caddy (HTTPS, <ip>.sslip.io) → app (ECR-дегі бейне) → PostgreSQL (/data — бөлек EBS томы).
-# Мәндер /opt/debug/.env-тен: құпиялар серверде жасалған (stack.yml UserData). Файлды infra/aws/deploy.sh әр деплойда жаңартады.
+# EC2-дегі стек (#68, #86, #88): Caddy (HTTPS) → production (app + db) және development (app-dev + db-dev),
+# OpenTelemetry collector (ADOT) → X-Ray, CloudWatch Metrics, CloudWatch Logs.
+# Мәндер /opt/debug/.env-тен (құпиялар серверде жасалған). Файлды infra/aws/deploy.sh әр деплойда жаңартады.
 name: debug
 
+x-app: &app
+  restart: unless-stopped
+  depends_on:
+    otel:
+      condition: service_started
+
 services:
+  # ---------------- production ----------------
   db:
     image: postgres:17-alpine
     environment:
@@ -17,21 +25,70 @@ services:
       timeout: 5s
       retries: 30
     restart: unless-stopped
-    # Порт сыртқа ашылмайды: дерекқорға тек осы желідегі app қосылады
 
   app:
+    <<: *app
     image: ${APP_IMAGE:?}
     environment:
       DB_DRIVER: postgres
       DATABASE_URL: postgresql://debug:${POSTGRES_PASSWORD:?}@db:5432/debug
       SESSION_SECRET: ${SESSION_SECRET:?}
       SEED_ON_START: "0"
-      # t3.micro: 1 ГБ жад + 2 ГБ swap
-      NODE_OPTIONS: --max-old-space-size=320
+      DEPLOY_ENV: production
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel:4318
+      OTEL_TRACES_SAMPLER_ARG: "0.2"
+      NODE_OPTIONS: --max-old-space-size=300
     depends_on:
       db:
         condition: service_healthy
+      otel:
+        condition: service_started
+
+  # ---------------- development (бөлек дерекқор, бөлек құпиялар) ----------------
+  db-dev:
+    image: postgres:17-alpine
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=40"]
+    environment:
+      POSTGRES_USER: debug
+      POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD:?}
+      POSTGRES_DB: debug
+    volumes:
+      - /data/postgres-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U debug -d debug"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
     restart: unless-stopped
+
+  app-dev:
+    <<: *app
+    image: ${APP_IMAGE_DEV:-${APP_IMAGE}}
+    environment:
+      DB_DRIVER: postgres
+      DATABASE_URL: postgresql://debug:${DEV_POSTGRES_PASSWORD:?}@db-dev:5432/debug
+      SESSION_SECRET: ${DEV_SESSION_SECRET:?}
+      SEED_ON_START: "1"
+      DEPLOY_ENV: development
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel:4318
+      OTEL_TRACES_SAMPLER_ARG: "1"
+      NODE_OPTIONS: --max-old-space-size=256
+    depends_on:
+      db-dev:
+        condition: service_healthy
+      otel:
+        condition: service_started
+
+  # ---------------- observability ----------------
+  otel:
+    image: public.ecr.aws/aws-observability/aws-otel-collector:v0.51.0
+    command: ["--config=/etc/otel-collector.yaml"]
+    environment:
+      AWS_REGION: ${AWS_REGION:?}
+    volumes:
+      - ./otel-collector.yaml:/etc/otel-collector.yaml:ro
+    restart: unless-stopped
+    # Порт сыртқа ашылмайды: тек app/app-dev осы желіде OTLP жібереді
 
   caddy:
     image: caddy:2-alpine
@@ -46,6 +103,7 @@ services:
       - caddy_config:/config
     depends_on:
       - app
+      - app-dev
     restart: unless-stopped
 
 volumes:

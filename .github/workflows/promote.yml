@@ -1,0 +1,59 @@
+# Production-ға қолмен шығару (#87): development-те сау тұрған сол Docker бейнесі (ECR :<sha>, қайта құрастырусыз)
+# production-ға қойылады, сосын production /api/health осы нұсқаны көрсеткенше күтеді. GitHub → Actions → «Run workflow».
+name: Promote to production
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Commit SHA to promote (empty = the version running on development)"
+        required: false
+        default: ""
+      force:
+        description: "Allow a SHA that is not the healthy version on development (e.g. rollback to an older image)"
+        type: boolean
+        default: false
+
+concurrency: { group: deploy-production, cancel-in-progress: false }
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  promote:
+    name: Promote development → production
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.SITE_URL }}
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ECR_REPOSITORY_URI: ${{ vars.ECR_REPOSITORY_URI }}
+      INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+      SITE_URL: ${{ vars.SITE_URL }}
+      DEV_SITE_URL: ${{ vars.DEV_SITE_URL }}
+      INPUT_SHA: ${{ inputs.sha }}
+      INPUT_FORCE: ${{ inputs.force }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Which version is promoted?
+        id: v
+        run: |
+          DEV=$(curl -fsS --max-time 10 "$DEV_SITE_URL/api/health" | jq -r 'select(.db == "up") | .version' || true)
+          SHA="${INPUT_SHA:-$DEV}"
+          if ! [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]; then echo "::error::No full commit SHA to promote (development reports '${DEV:-nothing}')."; exit 1; fi
+          if [ "$SHA" != "$DEV" ] && [ "$INPUT_FORCE" != "true" ]; then
+            echo "::error::$SHA is not the version healthy on development ($DEV). Push it first, or set force for a rollback."; exit 1
+          fi
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          PROD=$(curl -fsS --max-time 10 "$SITE_URL/api/health" | jq -r '.version' || echo unknown)
+          { echo "### Promote to production"; echo "- production before: \`$PROD\`"; echo "- development: \`$DEV\`"; echo "- promoted: \`$SHA\`"; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: The image exists in ECR (built and tested on push, never rebuilt)
+        run: aws ecr describe-images --repository-name "${ECR_REPOSITORY_URI#*/}" --image-ids "imageTag=${{ steps.v.outputs.sha }}" --query 'imageDetails[0].imagePushedAt' --output text
+      - name: Roll out production over SSM and wait for /api/health = promoted SHA
+        run: bash infra/aws/deploy.sh production "$ECR_REPOSITORY_URI:${{ steps.v.outputs.sha }}" "${{ steps.v.outputs.sha }}"

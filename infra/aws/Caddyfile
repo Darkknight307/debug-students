@@ -1,11 +1,22 @@
-# HTTPS (#68): Caddy Let's Encrypt сертификатын өзі алады және жаңартады; http:// → https:// өзі бағыттайды.
-{$SITE_HOST} {
+# HTTPS (#68, #86): Caddy Let's Encrypt сертификаттарын өзі алады және жаңартады; http:// → https:// өзі бағыттайды.
+# production: <ip>.sslip.io · development: dev.<ip>.sslip.io (sslip.io кез келген префиксті сол IP-ге шешеді)
+(common) {
 	encode zstd gzip
-	reverse_proxy app:3000
 	header {
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		-Server
 	}
+}
+
+{$SITE_HOST} {
+	import common
+	reverse_proxy app:3000
+}
+
+dev.{$SITE_HOST} {
+	import common
+	header X-Robots-Tag "noindex"
+	reverse_proxy app-dev:3000
 }

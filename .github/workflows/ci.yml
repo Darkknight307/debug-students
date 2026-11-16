@@ -1,4 +1,5 @@
-# CI/CD (#57): әр push пен pull request барлық тестті жүргізеді; main-ге push тесттер өтсе AWS-ке қайта деплой жасайды.
+# CI/CD (#57, #86): әр push пен pull request барлық тестті жүргізеді; main-ге push тесттер өтсе AWS development-ке
+# деплой жасайды. Production-ға — тек қолмен: .github/workflows/promote.yml (#87).
 # Vercel main-ді өзінің GitHub интеграциясымен бөлек деплойлайды.
 name: CI/CD
 
@@ -97,12 +98,16 @@ jobs:
       - run: pip install --quiet cfn-lint
       - run: cfn-lint infra/aws/stack.yml
 
-  deploy:
-    name: Deploy to AWS (EC2 · Docker Compose)
+  deploy-dev:
+    name: Deploy to development (EC2 · dev.<ip>.sslip.io)
     needs: [unit, api-e2e, build, docker-e2e, infra-lint]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    concurrency: { group: deploy-production, cancel-in-progress: false }
+    # Әр push тек development-ке барады (#86); production-ға — «Promote to production» қолмен (#87)
+    environment:
+      name: development
+      url: ${{ vars.DEV_SITE_URL }}
+    concurrency: { group: deploy-development, cancel-in-progress: false }
     permissions:
       contents: read
       id-token: write # GitHub OIDC → AWS рөлі, сақталған кілт жоқ
@@ -130,7 +135,7 @@ jobs:
         if: steps.cfg.outputs.skip != 'true'
       - uses: docker/setup-buildx-action@v4
         if: steps.cfg.outputs.skip != 'true'
-      - name: Build and push linux/amd64 image to ECR
+      - name: Build once and push linux/amd64 image :<sha> to ECR (the same image is promoted later)
         if: steps.cfg.outputs.skip != 'true'
         uses: docker/build-push-action@v7
         with:
@@ -138,9 +143,9 @@ jobs:
           push: true
           platforms: linux/amd64
           provenance: false
-          tags: ${{ vars.ECR_REPOSITORY_URI }}:${{ github.sha }},${{ vars.ECR_REPOSITORY_URI }}:latest
+          tags: ${{ vars.ECR_REPOSITORY_URI }}:${{ github.sha }}
           build-args: APP_VERSION=${{ github.sha }}
           cache-from: type=gha
-      - name: Roll out over SSM and wait for /api/health = this commit
+      - name: Roll out development over SSM and wait for dev /api/health = this commit
         if: steps.cfg.outputs.skip != 'true'
-        run: bash infra/aws/deploy.sh "$ECR_REPOSITORY_URI:${{ github.sha }}" "${{ github.sha }}"
+        run: bash infra/aws/deploy.sh development "$ECR_REPOSITORY_URI:${{ github.sha }}" "${{ github.sha }}"
