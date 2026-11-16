@@ -1,0 +1,55 @@
+# AI on-call жауапкері (#91): CloudWatch alarm → SNS → Lambda → repository_dispatch «cloudwatch-alarm» → Gemini агенті
+# read-only құралдармен (CloudWatch, Logs, X-Ray, health, деплойлар) тексеріп, `incident` issue жазады. Ештеңені өзгертпейді.
+# Қолмен жаттығу: Actions → On-call agent → Run workflow.
+name: On-call agent
+
+on:
+  repository_dispatch:
+    types: [cloudwatch-alarm]
+  workflow_dispatch:
+    inputs:
+      alarm:
+        description: "Alarm name (drill)"
+        default: debug-prod-5xx
+      state:
+        description: "State to simulate"
+        type: choice
+        options: [ALARM, OK]
+        default: ALARM
+
+concurrency:
+  group: oncall-${{ github.event.client_payload.alarm.name || inputs.alarm }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+  id-token: write
+
+jobs:
+  respond:
+    name: Investigate and report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: "22" }
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ONCALL_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Investigate with Gemini and update the incident issue
+        run: npx --yes tsx@4.23.15 ops/oncall/run.ts
+        env:
+          # Payload env арқылы беріледі (скрипт мәтініне кірістірілмейді)
+          ALARM_JSON: ${{ toJSON(github.event.client_payload.alarm) }}
+          INPUT_ALARM: ${{ inputs.alarm }}
+          INPUT_STATE: ${{ inputs.state }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          GH_TOKEN: ${{ github.token }}
+          EC2_INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+          SITE_URL: ${{ vars.SITE_URL }}
+          DEV_SITE_URL: ${{ vars.DEV_SITE_URL }}

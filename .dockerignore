@@ -22,3 +22,4 @@ tests
 *.log
 .DS_Store
 playwright.config.ts
+ops
