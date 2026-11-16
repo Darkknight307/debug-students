@@ -5,6 +5,8 @@ import { GRACE_MS, findOpenTask, loadContext, tooFast } from "../../../../lib/co
 import { verifyChallenge } from "../../../../lib/contest/challenge";
 import { checkCode, compareOutputs } from "../../../../lib/contest/rules";
 import { fail, ok, readJson } from "../../../../lib/contest/http";
+import { recordSubmission } from "../../../../lib/server/events";
+import { log } from "../../../../lib/server/log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,8 +56,9 @@ export async function POST(req: Request) {
       answer: JSON.stringify(outputs).slice(0, 20_000), code, is_correct: correct, points: correct ? task.points : 0, reason: correct ? null : "wrong",
     });
   } catch (e) {
-    console.error("[submit] insert:", (e as Error).message);
+    log("error", "contest.submit_failed", { message: (e as Error).message.slice(0, 300) });
     return fail(500, "Жіберілім сақталмады. Қайталап көріңіз.");
   }
+  recordSubmission("code", correct);
   return ok({ correct });
 }

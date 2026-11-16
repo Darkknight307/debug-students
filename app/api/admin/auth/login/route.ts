@@ -7,6 +7,7 @@ import { bootstrapAdmin } from "../../../../../lib/server/admin";
 import { recordFailure, tooManyFailures, clearFailures } from "../../../../../lib/rateLimit";
 import { normalizeEmail } from "../../../../../lib/registration";
 import { clientIp } from "../../../../../lib/server/ip";
+import { recordLoginFailure } from "../../../../../lib/server/events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export const POST = route(async (req: NextRequest) => {
   const user = email ? await getStore().userByEmail(email) : null;
   if (!user || !password || !(await verifyPassword(password, user.password_hash))) {
     recordFailure(key, 10 * 60_000);
+    recordLoginFailure("admin");
     throw new HttpError(401, "Email немесе құпия сөз қате");
   }
   if (user.role !== "admin") throw new HttpError(403, "Бұл аккаунт әкімші емес");

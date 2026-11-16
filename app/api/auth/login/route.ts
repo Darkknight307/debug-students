@@ -6,6 +6,7 @@ import { HttpError, body, json, route } from "../../../../lib/server/route";
 import { clearFailures, recordFailure, tooManyFailures } from "../../../../lib/rateLimit";
 import { isValidEmail, normalizeEmail } from "../../../../lib/registration";
 import { clientIp } from "../../../../lib/server/ip";
+import { recordLoginFailure } from "../../../../lib/server/events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ export const POST = route(async (req: NextRequest) => {
   if (!user || !(await verifyPassword(password, user.password_hash))) {
     recordFailure(userKey, WINDOW_MS);
     recordFailure(ipKey, WINDOW_MS);
+    recordLoginFailure("student");
     throw new HttpError(401, "Email немесе құпия сөз қате.");
   }
   clearFailures(userKey);

@@ -41,10 +41,11 @@ components:
       properties: { ok: { type: boolean, const: true } }
     Health:
       type: object
-      required: [ok, db, version]
+      required: [ok, db, env, version]
       properties:
         ok: { type: boolean }
         db: { type: string, enum: [up, down] }
+        env: { type: string, enum: [production, development, local], description: "DEPLOY_ENV of the container (#86)" }
         version: { type: string, description: "APP_VERSION of the image (git SHA) or dev" }
     TestCase:
       type: object

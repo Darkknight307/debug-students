@@ -3,6 +3,7 @@ import { currentAdmin, isServerConfigured } from "./auth";
 import { isConflict } from "./store";
 import type { UserRow } from "./store";
 import { HttpError } from "./httpError";
+import { log } from "./log";
 
 export { HttpError };
 
@@ -23,7 +24,7 @@ export async function body(req: Request): Promise<Record<string, unknown>> {
 function toResponse(e: unknown) {
   if (e instanceof HttpError) return json({ message: e.message, ...e.extra }, e.status);
   if (isConflict(e)) return json({ message: "Мұндай жазба бұрыннан бар" }, 409);
-  console.error("[api]", (e as Error).message);
+  log("error", "api.error", { message: (e as Error).message.slice(0, 300) });
   return json({ message: "Сервер қатесі. Қайталап көріңіз." }, 500);
 }
 

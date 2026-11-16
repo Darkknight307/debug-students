@@ -3,6 +3,8 @@ import { isServerConfigured } from "../../../../lib/server/auth";
 import { getStore } from "../../../../lib/server/store";
 import { GRACE_MS, findOpenTask, loadContext, tooFast, variantFor } from "../../../../lib/contest/server";
 import { fail, ok, readJson } from "../../../../lib/contest/http";
+import { recordSubmission } from "../../../../lib/server/events";
+import { log } from "../../../../lib/server/log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,8 +35,9 @@ export async function POST(req: Request) {
       answer: choice, code: null, is_correct: isCorrect, points: isCorrect ? task.points : 0, reason: null,
     });
   } catch (e) {
-    console.error("[answer] insert:", (e as Error).message);
+    log("error", "contest.answer_failed", { message: (e as Error).message.slice(0, 300) });
     return fail(500, "Жауап сақталмады. Қайталап көріңіз.");
   }
+  recordSubmission("answer", isCorrect);
   return ok({ saved: true });
 }

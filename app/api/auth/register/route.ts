@@ -6,6 +6,7 @@ import { HttpError, body, json, route } from "../../../../lib/server/route";
 import { hit } from "../../../../lib/rateLimit";
 import { fullNameOf, validateRegistration } from "../../../../lib/registration";
 import { clientIp } from "../../../../lib/server/ip";
+import { recordRegistration } from "../../../../lib/server/events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,6 +32,7 @@ export const POST = route(async (req: NextRequest) => {
       last_name: p.lastName, first_name: p.firstName, full_name: fullNameOf(p.lastName, p.firstName),
       university: p.university, course: p.course, phone: p.phone,
     });
+    recordRegistration();
     return setStudentSession(json({ loggedIn: true, student: { fullName: user.full_name } }), user.id);
   } catch (e) {
     if (isConflict(e)) throw new HttpError(409, "Бұл email-мен бұрын тіркелгенсіз. «Кіру» қойындысынан кіріңіз.", { field: "email" });

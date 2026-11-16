@@ -7,13 +7,13 @@ import type { Store } from "../../lib/server/store/types.ts";
 
 test("дерекқор жауап берсе → 200 {ok: true, db: up, version}", async () => {
   const r = await checkHealth(() => new MemoryStore(), "abc123");
-  assert.deepEqual(r, { status: 200, body: { ok: true, db: "up", version: "abc123" } });
+  assert.deepEqual(r, { status: 200, body: { ok: true, db: "up", env: "local", version: "abc123" } });
 });
 
 test("дерекқор жауап бермесе → 503 {ok: false, db: down}, қате мәтіні жауапта жоқ", async () => {
   const broken = { ping: () => Promise.reject(new Error("connect ECONNREFUSED db-host:5432 password=x")) } as unknown as Store;
   const r = await checkHealth(() => broken, "abc123");
-  assert.deepEqual(r, { status: 503, body: { ok: false, db: "down", version: "abc123" } });
+  assert.deepEqual(r, { status: 503, body: { ok: false, db: "down", env: "local", version: "abc123" } });
   assert.ok(!JSON.stringify(r).includes("ECONNREFUSED"));
 });
 
