@@ -32,7 +32,9 @@ CI/CD, production on Vercel + Neon and on AWS (`infra/aws`, CloudFormation).
 | Apply migrations / create a new one | `npm run db:deploy` / `npm run db:migrate -- --name <name>` (schema: `prisma/schema.prisma`) |
 | Seed admin + first contest | `npm run db:seed` (reads `ADMIN_EMAIL`, `ADMIN_PASSWORD` from `.env`; Node 22.9+) |
 | Copy old data into Postgres | `npm run db:import -- --from <libsql://… \| postgresql://… \| file:….db \| export.json> [--to url] [--export file.json]` |
-| AWS stack / deploy / data | `infra/aws/README.md` (`aws cloudformation deploy …`, `infra/aws/deploy.sh`, `infra/aws/import-data.sh`) |
+| AWS stack / deploy / data | `infra/aws/README.md` (`AWS_PROFILE=… bash infra/aws/bootstrap.sh`, `infra/aws/deploy.sh development\|production <image> <sha>`, `infra/aws/import-data.sh`) |
+| Promote development → production (manual) | `gh workflow run promote.yml` (optional `-f sha=<sha> -f force=true` for a rollback) |
+| On-call agent drill | `gh workflow run oncall.yml -f alarm=debug-prod-5xx -f state=ALARM` |
 
 Keep this table in sync with `package.json`. Local config lives in `.env` (copy `.env.example`).
 
@@ -40,7 +42,7 @@ Keep this table in sync with `package.json`. Local config lives in `.env` (copy 
 
 - Work on **one GitHub issue at a time**. Read its acceptance criteria (and the QA test cases) before starting and before handing over.
 - Every commit message references the issue: `Add PrismaStore (#39)`.
-- **Never add a dependency without asking.** Runtime deps: next, react, react-dom, @prisma/client, prisma, CodeMirror packages; dev: tsx, typescript, @playwright/test.
+- **Never add a dependency without asking.** Runtime deps: next, react, react-dom, @prisma/client, prisma, CodeMirror packages; @opentelemetry/* (exact versions; iteration 7); dev: tsx, typescript, @playwright/test. The on-call agent (`ops/oncall`) uses no package: Gemini REST through `fetch`, AWS/GitHub CLIs on the runner.
 - Every change ships with tests; `npm test`, `npm run test:e2e` and `npm run test:pw:compose` must pass, `npm run build` must succeed. CI (`.github/workflows/ci.yml`) runs all of them on every push.
 - **Relative imports only** (no `@/` alias).
 - Pages and components never call `fetch` or a database directly — only `lib/client` (`api`).
@@ -49,6 +51,8 @@ Keep this table in sync with `package.json`. Local config lives in `.env` (copy 
 - Test data uses invented names and `@mock.test` emails. No real student data, no secrets in the repo.
 - After `next build` or a dev server with `NEXT_DIST_DIR`, remove `node_modules/.cache/...` entries that Next adds to `tsconfig.json` `include`.
 - Module-level state is per route bundle in Next.js: anything shared between routes (store, caches, rate limits) lives on `globalThis` (#60, #84).
+- Observability: record application events through `lib/server/events.ts` / `log()` — never personal data in logs, metrics or the on-call prompt; metric attributes stay `{ env }` only (CloudWatch free tier: 10 metric streams).
+- Production changes only through `promote.yml`; pushes deploy development.
 - Infrastructure stays inside the AWS free account: never add paid resources (NAT, load balancer, RDS, detailed monitoring) to `infra/aws/stack.yml`.
 
 ## Documents

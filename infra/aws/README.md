@@ -26,6 +26,12 @@ Everything is chosen to stay inside the free account / credits:
 | SSM, IAM, OIDC, VPC, security group | — | free |
 | AWS Budget (optional `AlertEmail`) | 1 budget | the first two budgets are free |
 
+| CloudWatch metrics / alarms / dashboards | 10 metric streams (5 × `env`), 7 alarm metrics, 1 dashboard | always-free tier: 10 metrics, 10 alarms, 3 dashboards |
+| CloudWatch Logs | `/debug-students/app`, `/debug-students/metrics`, Lambda — 7-day retention | 5 GB ingestion + storage free |
+| X-Ray | 20 % of production traces + every 5xx; health/static never | 100 000 traces/month free |
+| SNS + Lambda (alert relay) | a few invocations per alarm | 1 M requests free |
+| SSM Parameter Store | 1 standard SecureString (GitHub token) | free |
+
 Not used on purpose (would cost money): NAT gateway, load balancer, RDS, CloudWatch detailed monitoring, extra IPs.
 Never upgrade the account to a paid plan for this project.
 
@@ -107,3 +113,45 @@ aws cloudformation wait stack-delete-complete --stack-name debug-students
 
 The ECR repository is emptied automatically; the instance, both volumes (with the data), the Elastic IP, the VPC and the
 roles are removed. Then delete the GitHub variables (`gh variable delete …`).
+
+## Development, production and promotion (#86, #87)
+
+| | URL | Containers | Database | Deployed by |
+|---|---|---|---|---|
+| development | `https://dev.<ip>.sslip.io` | `app-dev` | `db-dev` (`/data/postgres-dev`) | every push to `main` (CI job `deploy-dev`) |
+| production | `https://<ip>.sslip.io` | `app` | `db` (`/data/postgres`) | **Promote to production** only |
+
+```bash
+gh workflow run promote.yml                                 # promote the version that is healthy on development
+gh workflow run promote.yml -f sha=<older sha> -f force=true # rollback to an older image
+```
+
+Dev secrets are generated on the server at the first dev deploy. A dev deploy never restarts production containers
+(`docker compose up --no-deps` of the dev services only).
+
+## Observability (#88, #89, #90)
+
+`app` / `app-dev` → OTLP/HTTP → `otel` (AWS Distro for OpenTelemetry collector, `otel-collector.yaml`) →
+X-Ray (traces), CloudWatch Metrics via EMF (namespace `DebugStudents`, dimension `env`) and CloudWatch Logs.
+Dashboard: stack output `DashboardUrl`. Alarms (production): `debug-prod-5xx`, `debug-prod-latency`,
+`debug-prod-login-failures`, `debug-prod-submissions-anomaly` (anomaly detection), `debug-instance-status` →
+SNS topic `debug-students-alerts` (+ e-mail when `AlertEmail` is set).
+
+## AI on-call agent (#91)
+
+alarm → SNS → Lambda `debug-students-alert-relay` → GitHub `repository_dispatch` → `.github/workflows/oncall.yml`
+→ Gemini agent (`ops/oncall`) with read-only tools (role `OnCallRole`) → `incident` issue; OK → resolved + closed.
+
+Owner setup (once, secrets never in chat or the repo):
+
+```bash
+gh secret set GEMINI_API_KEY                       # key from https://aistudio.google.com/apikey
+read -s T && aws ssm put-parameter --profile debug --region eu-central-1 \
+  --name /debug-students/github-dispatch-token --type SecureString --value "$T" && unset T
+                                                   # fine-grained token: this repository, Contents read/write
+gh variable set GEMINI_MODEL --body gemini-flash-latest   # optional, default
+```
+
+Drill: `aws cloudwatch set-alarm-state --alarm-name debug-prod-5xx --state-value ALARM --state-reason "drill"`
+(full path through SNS and Lambda; CloudWatch returns it to OK at the next evaluation, which closes the issue) or
+`gh workflow run oncall.yml -f alarm=debug-prod-5xx -f state=ALARM` (agent only).

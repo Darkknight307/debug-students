@@ -11,6 +11,8 @@ How work is organised in this repo (AI-native workflow: brainstorm → plan → 
   - `user-test-bug` — a bug found while **actually running and testing** the app (not by reading code). Must be closed before the deadline.
   - `iter-0-process` … `iter-5-integration` — which iteration an `mvp` issue belongs to.
   - `iter-6-deploy` — iteration 6 «test, containerise and deploy» (PostgreSQL, Docker, Compose, Playwright, CI/CD, AWS).
+  - `iter-7-devops` — iteration 7 «DevOps and observability» (dev/prod, promotion, OpenTelemetry, dashboard, alarms, AI on-call).
+  - `incident` — opened and updated by the AI on-call agent for a CloudWatch alarm (closed automatically on OK).
   - `e2e-test` — one Playwright end-to-end test for one feature (one issue = one spec in `e2e/features/`).
 - Work on **one issue at a time**, in issue-number order unless a dependency says otherwise.
 - Every commit message references the issue: `Add PrismaStore (#39)`.
@@ -25,6 +27,7 @@ How work is organised in this repo (AI-native workflow: brainstorm → plan → 
 | 3 | Backend, **in-memory store** | Route handlers → services → `Store` interface → `MemoryStore` |
 | 4 | Backend, **SQLite** | `PrismaStore` (Prisma ORM, SQLite file) passes the same store contract tests |
 | 5 | **Connect** frontend + backend | Real backend by default, e2e on SQLite, manual user test session, docs |
+| 7 | **DevOps and observability** | development/production environments, manual promotion, OpenTelemetry → CloudWatch/X-Ray, application metrics + dashboard, alarms, Gemini on-call agent |
 | 6 | **Test, containerise, deploy** | PostgreSQL, one Docker image, Compose, a Playwright `e2e-test` issue per feature, CI/CD, Vercel + Neon, AWS (CloudFormation) |
 
 ## Roles

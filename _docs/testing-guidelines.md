@@ -11,6 +11,8 @@
 | API e2e | `tests/contest/e2e.mjs`, `tests/auth/e2e.sh`, `tests/admin/e2e.mjs` (runner `tests/e2e.sh`) | `npm run test:e2e` (one mode: `E2E_ONLY=postgres`) | the real Next.js server end to end in two modes: memory, Postgres |
 | Browser e2e (Playwright) | `e2e/features/NN-*.spec.ts` (one per feature, `e2e-test` issues), `e2e/fixtures.ts` | `npm run test:pw:compose` | real Chromium (desktop 1280 px + mobile 375 px) against the Docker image + Postgres |
 | Integration | `e2e/integration/stack.spec.ts`, `tests/health/unit.test.mts` | `npm run test:pw:compose`, `npm test` | one container serves static + API, Postgres round trip, health, no answer keys |
+| Telemetry | `tests/telemetry/unit.test.mts` | `npm test` | request-span metrics, event counters (`env` only), export filter (health, ratio, 5xx), no PII in logs |
+| On-call agent | `tests/oncall/agent.test.mts` | `npm test` | Gemini loop with a fake model (function call → tool → report, budget, errors), read-only tools, incident issue logic, the alert-relay Lambda from `stack.yml` |
 | Manual | browser (desktop + 375 px) | a person / QA | what tests miss: layout, animations, copy, flows — bugs become `user-test-bug` issues |
 
 `npm test` runs every `tests/**/*.test.mts` through `tsx` with `node:test`. Postgres tests use `TEST_DATABASE_URL`

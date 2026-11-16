@@ -88,3 +88,22 @@ contract ─ openapi.yml (every /api path; a test checks it matches the route fi
     the import script are bundled with the `esbuild` binary that `tsx` already ships.
 17. **Shared server state lives on `globalThis`** (#60, #84): Next.js bundles every route separately, so module-level
     caches and counters exist once per route bundle; `afterWrite()` and the test-hook reset can only clear what is shared.
+
+## Iteration 7 — DevOps and observability
+
+| Question | Options | Chosen |
+|---|---|---|
+| Environments | **same EC2, two Compose services + two databases** · Vercel as dev · second EC2 | same EC2 (owner): free, the dev and prod containers run the same image; `dev.<ip>.sslip.io` |
+| Promotion | **`workflow_dispatch` + GitHub environment `production`, same ECR image** · rebuild per environment | build once on push, promote the tested `:<sha>`; rollback = promote an older SHA with `force` |
+| Telemetry backend | **AWS CloudWatch + X-Ray via ADOT collector** · Grafana Cloud · self-hosted LGTM | CloudWatch (owner): stays in the AWS account and CloudFormation; free tier sizes the design |
+| HTTP metrics | **from Next.js request spans (SpanProcessor)** · wrap every route | Next.js already opens one `BaseServer.handleRequest` span per request with status and target; one processor covers every route |
+| Trace sampling | **record all, export a trace-id ratio + every 5xx root; drop health/static traces** | metrics stay exact while X-Ray stays under 100k traces/month |
+| Alerts | **4 static alarms + 1 anomaly-detection alarm** (7 of 10 free alarm metrics) | "when the metrics change" = anomaly band on submissions plus thresholds for errors, latency, login spikes |
+| Alert delivery | **SNS → inline Lambda → GitHub `repository_dispatch`** · cron polling | push, seconds; the GitHub token stays in SSM Parameter Store, read only by the Lambda |
+| AI on-call | **Gemini (owner's choice), function calling over REST, read-only tools, GitHub issue** | no new dependency; the agent investigates and recommends, the owner acts |
+
+18. **OpenTelemetry** (#88): `instrumentation.ts` starts the SDK only on the Node runtime with `OTEL_EXPORTER_OTLP_ENDPOINT`;
+    route bundles import only `@opentelemetry/api` (`lib/server/otel.ts`), the SDK lives in `lib/server/telemetry.ts`.
+    Metrics use DELTA temporality (CloudWatch EMF), one attribute `env`.
+19. **Logs** go through `lib/server/log.ts`: JSON line to stdout + OTel log record; keys such as email, phone, names,
+    code, tokens are dropped by `sanitize()`.

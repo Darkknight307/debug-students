@@ -52,13 +52,32 @@ npm run build            # type check + production build
 Tests that need Postgres use `TEST_DATABASE_URL` (default `postgresql://debug:debug@localhost:5432/debug`); every run
 creates its own schema and drops it afterwards.
 
+## Environments, promotion and observability
+
+- **development** — `https://dev.<ip>.sslip.io`: every push to `main` that passes CI is deployed here automatically.
+- **production** — `https://<ip>.sslip.io`: changes only through **Actions → Promote to production → Run workflow**
+  (or `gh workflow run promote.yml`), which deploys the exact ECR image (`:<sha>`) that is healthy on development —
+  no rebuild. Rollback = promote an older SHA with `force`.
+- **OpenTelemetry**: the app exports traces, metrics and logs (`instrumentation.ts`, `lib/server/telemetry.ts`) to an
+  ADOT collector → **AWS X-Ray**, **CloudWatch Metrics** (namespace `DebugStudents`, dimension `env`) and
+  **CloudWatch Logs** (`/debug-students/app`). Off when `OTEL_EXPORTER_OTLP_ENDPOINT` is not set (Vercel, tests).
+- **Application metrics** (`lib/server/otel.ts`, `events.ts`): `http_latency`, `http_5xx`, `registrations`,
+  `submissions`, `login_failures` → CloudWatch dashboard `debug-students`.
+- **Alarms** (production): 5xx, slow requests, failed-login spike, submissions anomaly (anomaly detection), EC2 status
+  → SNS → Lambda → GitHub `repository_dispatch`.
+- **AI on-call** (`ops/oncall`, `.github/workflows/oncall.yml`): a **Gemini** agent investigates every alarm with
+  read-only tools (alarm, metrics, logs, X-Ray traces, health, recent deploys) and opens/updates an `incident` issue;
+  OK closes it. It never changes production. Drill: Actions → On-call agent → Run workflow.
+
 ## CI/CD
 
 `.github/workflows/ci.yml` on every push and pull request: **unit** (with a Postgres service) · **api-e2e** ·
 **build** · **docker-e2e** (image + Compose + Playwright, report uploaded on failure) · **infra-lint** (cfn-lint).
-On a push to `main` that passes everything, **deploy** assumes an AWS role through GitHub OIDC (no stored keys), pushes
-the `linux/amd64` image to ECR, rolls it out over SSM and waits until `/api/health` reports the commit SHA. Until the
-repository variables from `infra/aws/README.md` exist, the deploy job is skipped with a notice.
+On a push to `main` that passes everything, **deploy-dev** (GitHub environment `development`) assumes an AWS role
+through GitHub OIDC (no stored keys), pushes the `linux/amd64` image `:<sha>` to ECR, rolls it out to development over
+SSM and waits until dev `/api/health` reports the commit SHA. **Promote to production** (`promote.yml`, environment
+`production`) is the manual trigger that moves the same image to production. Until the repository variables from
+`infra/aws/README.md` exist, the deploy job is skipped with a notice.
 
 ## Deploy
 
