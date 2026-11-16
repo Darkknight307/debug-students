@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AWS-ті бір командамен баптау (#68): CloudFormation стегі → CI айнымалылары → CI деплойы → (қаласа) дерек импорты.
+# AWS-ті бір командамен баптау/жаңарту (#68, #86–#91): CloudFormation стегі → CI айнымалылары → (қаласа) дерек импорты.
 #   AWS_PROFILE=debug bash infra/aws/bootstrap.sh [data-export.json]
 # Иесі өз терминалында іске қосады — стек құру және репо айнымалыларын қою оның аккаунттарындағы әрекет.
 set -euo pipefail
@@ -27,21 +27,12 @@ gh variable set AWS_DEPLOY_ROLE_ARN --body "$(out DeployRoleArn)"
 gh variable set ECR_REPOSITORY_URI --body "$(out EcrRepositoryUri)"
 gh variable set EC2_INSTANCE_ID --body "$INSTANCE_ID"
 gh variable set SITE_URL --body "$SITE_URL"
+gh variable set DEV_SITE_URL --body "$(out DevSiteUrl)"
+gh variable set AWS_ONCALL_ROLE_ARN --body "$(out OnCallRoleArn)"
+gh label create incident --color B60205 --description "Production alert handled by the on-call agent" --force > /dev/null
 
-echo "3/4 CI деплойы (main-дегі соңғы іске қосу)…"
-RUN="$(gh run list --workflow ci.yml --branch main --limit 1 --json databaseId --jq '.[0].databaseId')"
-SHA="$(gh run view "$RUN" --json headSha --jq .headSha)"
-gh run watch "$RUN" > /dev/null 2>&1 || true
-if ! curl -fsS --max-time 5 "$SITE_URL/api/health" 2>/dev/null | grep -q "\"version\":\"$SHA\""; then
-  JOB="$(gh run view "$RUN" --json jobs --jq '.jobs[] | select(.name | startswith("Deploy")) | .databaseId')"
-  gh run rerun --job "$JOB"
-  sleep 20
-  if ! gh run watch "$RUN" --exit-status > /dev/null; then
-    echo "✗ CI деплойы сәтсіз: gh run view $RUN --log-failed" >&2
-    exit 1
-  fi
-fi
-curl -fsS "$SITE_URL/api/health"
+echo "3/4 Жеткізу: әр push → development (CI, #86); production → «Promote to production» (gh workflow run promote.yml, #87)"
+curl -fsS --max-time 10 "$SITE_URL/api/health" || true
 echo
 
 if [ -n "${1:-}" ]; then

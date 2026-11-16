@@ -3,6 +3,8 @@ Description: >-
   DEBUG · Студенттер — production on AWS free tier (#68): one EC2 t3.micro runs Docker Compose
   (Caddy HTTPS on <ip>.sslip.io → app image from ECR → PostgreSQL on its own EBS volume).
   CI deploys through GitHub OIDC + SSM; no SSH, no stored keys, no secrets in this template.
+  Development + production on the same server (#86), OpenTelemetry -> X-Ray / CloudWatch (#88), dashboard (#89),
+  alarms (#90) -> SNS -> Lambda -> GitHub on-call agent (#91). Everything inside the free tier.
   Delete everything with: aws cloudformation delete-stack --stack-name <name>
 
 Parameters:
@@ -34,6 +36,12 @@ Parameters:
     Type: String
     Default: ""
     Description: Optional — e-mail for a monthly AWS Budget alert (budgets are free)
+  GitHubTokenParameter:
+    Type: String
+    Default: /debug-students/github-dispatch-token
+    Description: >-
+      SSM SecureString created by the owner (fine-grained GitHub token, Contents read/write on this repository);
+      the alert relay reads it to start the on-call workflow. The stack never sees its value
   MonthlyBudgetUsd:
     Type: Number
     Default: 5
@@ -137,6 +145,34 @@ Resources:
               - Effect: Allow
                 Action: [ecr:BatchGetImage, ecr:GetDownloadUrlForLayer, ecr:BatchCheckLayerAvailability]
                 Resource: !GetAtt EcrRepository.Arn
+        - PolicyName: write-telemetry
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents, logs:DescribeLogStreams]
+                Resource:
+                  - !Sub "${AppLogGroup.Arn}"
+                  - !Sub "${MetricsLogGroup.Arn}"
+              - Effect: Allow
+                Action: logs:DescribeLogGroups
+                Resource: "*"
+              - Effect: Allow
+                Action: [xray:PutTraceSegments, xray:PutTelemetryRecords, xray:GetSamplingRules, xray:GetSamplingTargets, xray:GetSamplingStatisticSummaries]
+                Resource: "*"
+
+  # ---------- OpenTelemetry destinations (#88): 7-day retention keeps storage inside the free 5 GB ----------
+  AppLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /debug-students/app
+      RetentionInDays: 7
+
+  MetricsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /debug-students/metrics
+      RetentionInDays: 7
 
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -286,6 +322,11 @@ Resources:
                 token.actions.githubusercontent.com:sub:
                   - !Sub repo:${GitHubRepo}:ref:refs/heads/main
                   - !Sub ${GitHubOidcSubjectPrefix}:ref:refs/heads/main
+                  # GitHub environments (#86, #87): push → development, manual promotion → production
+                  - !Sub repo:${GitHubRepo}:environment:development
+                  - !Sub ${GitHubOidcSubjectPrefix}:environment:development
+                  - !Sub repo:${GitHubRepo}:environment:production
+                  - !Sub ${GitHubOidcSubjectPrefix}:environment:production
       Policies:
         - PolicyName: push-image
           PolicyDocument:
@@ -298,6 +339,7 @@ Resources:
                 Action:
                   - ecr:BatchCheckLayerAvailability
                   - ecr:BatchGetImage
+                  - ecr:DescribeImages
                   - ecr:CompleteLayerUpload
                   - ecr:InitiateLayerUpload
                   - ecr:PutImage
@@ -315,6 +357,265 @@ Resources:
               - Effect: Allow
                 Action: [ssm:GetCommandInvocation, ssm:ListCommandInvocations]
                 Resource: "*"
+
+  # ---------- alarms (#90): production only; 4 standard + 1 anomaly (= 3) = 7 of the 10 free alarm metrics ----------
+  AlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${AWS::StackName}-alerts"
+
+  AlertsEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlertEmail
+    Properties:
+      TopicArn: !Ref AlertsTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail
+
+  ServerErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: debug-prod-5xx
+      AlarmDescription: Production answered with 5xx at least 5 times in 5 minutes
+      Namespace: DebugStudents
+      MetricName: http_5xx
+      Dimensions: [{ Name: env, Value: production }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertsTopic]
+      OKActions: [!Ref AlertsTopic]
+
+  SlowRequestsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: debug-prod-latency
+      AlarmDescription: Production average request time above 2 s in 2 of 3 five-minute periods
+      Namespace: DebugStudents
+      MetricName: http_latency
+      Dimensions: [{ Name: env, Value: production }]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      DatapointsToAlarm: 2
+      Threshold: 2000
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertsTopic]
+      OKActions: [!Ref AlertsTopic]
+
+  LoginFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: debug-prod-login-failures
+      AlarmDescription: At least 20 failed logins in 5 minutes on production (password guessing?)
+      Namespace: DebugStudents
+      MetricName: login_failures
+      Dimensions: [{ Name: env, Value: production }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 20
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertsTopic]
+      OKActions: [!Ref AlertsTopic]
+
+  SubmissionsAnomalyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: debug-prod-submissions-anomaly
+      AlarmDescription: Production submissions left the expected band (anomaly detection, 2 standard deviations) - sudden spike or drop during a contest
+      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 2
+      ThresholdMetricId: band
+      TreatMissingData: notBreaching
+      Metrics:
+        - Id: m1
+          ReturnData: true
+          MetricStat:
+            Metric:
+              Namespace: DebugStudents
+              MetricName: submissions
+              Dimensions: [{ Name: env, Value: production }]
+            Period: 300
+            Stat: Sum
+        - Id: band
+          Expression: ANOMALY_DETECTION_BAND(m1, 2)
+          Label: submissions (expected)
+          ReturnData: true
+      AlarmActions: [!Ref AlertsTopic]
+      OKActions: [!Ref AlertsTopic]
+
+  InstanceStatusAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: debug-instance-status
+      AlarmDescription: EC2 status check failed (server or host problem)
+      Namespace: AWS/EC2
+      MetricName: StatusCheckFailed
+      Dimensions: [{ Name: InstanceId, Value: !Ref Instance }]
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: breaching
+      AlarmActions: [!Ref AlertsTopic]
+      OKActions: [!Ref AlertsTopic]
+
+  # ---------- dashboard (#89): one of the 3 free dashboards ----------
+  Dashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Ref AWS::StackName
+      DashboardBody: !Sub
+        - |
+          {"widgets": [
+            {"type": "text", "x": 0, "y": 0, "width": 24, "height": 2, "properties": {"markdown": "## DEBUG · Студенттер — ${Host}\nproduction: https://${Host} · development: https://dev.${Host} · OpenTelemetry → CloudWatch (namespace DebugStudents, dimension env)"}},
+            {"type": "metric", "x": 0, "y": 2, "width": 8, "height": 6, "properties": {"title": "Requests per 5 min", "region": "${AWS::Region}", "stat": "SampleCount", "period": 300, "view": "timeSeries",
+              "metrics": [["DebugStudents", "http_latency", "env", "production", {"label": "production"}], ["...", "development", {"label": "development"}]]}},
+            {"type": "metric", "x": 8, "y": 2, "width": 8, "height": 6, "properties": {"title": "Request time, ms (production)", "region": "${AWS::Region}", "period": 300, "view": "timeSeries",
+              "metrics": [["DebugStudents", "http_latency", "env", "production", {"stat": "Average", "label": "average"}], ["...", {"stat": "Maximum", "label": "max"}]],
+              "annotations": {"horizontal": [{"label": "alarm", "value": 2000}]}}},
+            {"type": "metric", "x": 16, "y": 2, "width": 8, "height": 6, "properties": {"title": "HTTP 5xx", "region": "${AWS::Region}", "stat": "Sum", "period": 300, "view": "timeSeries",
+              "metrics": [["DebugStudents", "http_5xx", "env", "production", {"label": "production"}], ["...", "development", {"label": "development"}]],
+              "annotations": {"horizontal": [{"label": "alarm", "value": 5}]}}},
+            {"type": "metric", "x": 0, "y": 8, "width": 8, "height": 6, "properties": {"title": "Submissions (answers + code) with expected band", "region": "${AWS::Region}", "period": 300, "view": "timeSeries",
+              "metrics": [["DebugStudents", "submissions", "env", "production", {"id": "m1", "stat": "Sum", "label": "production"}], [{"expression": "ANOMALY_DETECTION_BAND(m1, 2)", "id": "band", "label": "expected"}], ["DebugStudents", "submissions", "env", "development", {"stat": "Sum", "label": "development"}]]}},
+            {"type": "metric", "x": 8, "y": 8, "width": 8, "height": 6, "properties": {"title": "Registrations", "region": "${AWS::Region}", "stat": "Sum", "period": 3600, "view": "timeSeries",
+              "metrics": [["DebugStudents", "registrations", "env", "production", {"label": "production"}], ["...", "development", {"label": "development"}]]}},
+            {"type": "metric", "x": 16, "y": 8, "width": 8, "height": 6, "properties": {"title": "Failed logins", "region": "${AWS::Region}", "stat": "Sum", "period": 300, "view": "timeSeries",
+              "metrics": [["DebugStudents", "login_failures", "env", "production", {"label": "production"}], ["...", "development", {"label": "development"}]],
+              "annotations": {"horizontal": [{"label": "alarm", "value": 20}]}}},
+            {"type": "metric", "x": 0, "y": 14, "width": 12, "height": 6, "properties": {"title": "Server CPU %", "region": "${AWS::Region}", "stat": "Average", "period": 300, "view": "timeSeries",
+              "metrics": [["AWS/EC2", "CPUUtilization", "InstanceId", "${Instance}"]]}},
+            {"type": "alarm", "x": 12, "y": 14, "width": 12, "height": 6, "properties": {"title": "Alarms", "alarms": [
+              "${ServerErrorsAlarm.Arn}", "${SlowRequestsAlarm.Arn}", "${LoginFailuresAlarm.Arn}", "${SubmissionsAnomalyAlarm.Arn}", "${InstanceStatusAlarm.Arn}"]}}
+          ]}
+        - Host: !Join ["", [!Join ["-", !Split [".", !Ref ElasticIp]], ".sslip.io"]]
+
+  # ---------- on-call (#91): alarm → SNS → Lambda → GitHub repository_dispatch → Gemini agent ----------
+  AlertRelayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: read-dispatch-token
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GitHubTokenParameter}
+
+  AlertRelayLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-alert-relay
+      RetentionInDays: 7
+
+  AlertRelayFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: AlertRelayLogGroup
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-alert-relay
+      Description: CloudWatch alarm (SNS) -> GitHub repository_dispatch cloudwatch-alarm (on-call agent)
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Timeout: 15
+      MemorySize: 128
+      Role: !GetAtt AlertRelayRole.Arn
+      Environment:
+        Variables:
+          REPO: !Ref GitHubRepo
+          TOKEN_PARAM: !Ref GitHubTokenParameter
+      Code:
+        ZipFile: |
+          const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
+          const ssm = new SSMClient({});
+          exports.handler = async (event) => {
+            const p = await ssm.send(new GetParameterCommand({ Name: process.env.TOKEN_PARAM, WithDecryption: true }));
+            for (const r of event.Records || []) {
+              const a = JSON.parse(r.Sns.Message);
+              const alarm = { name: a.AlarmName, state: a.NewStateValue, oldState: a.OldStateValue, reason: String(a.NewStateReason || "").slice(0, 900), time: a.StateChangeTime, description: a.AlarmDescription || "" };
+              const res = await fetch(`https://api.github.com/repos/${process.env.REPO}/dispatches`, {
+                method: "POST",
+                headers: { authorization: `Bearer ${p.Parameter.Value}`, accept: "application/vnd.github+json", "content-type": "application/json", "user-agent": "debug-students-alert-relay" },
+                body: JSON.stringify({ event_type: "cloudwatch-alarm", client_payload: { alarm } }),
+              });
+              if (!res.ok) throw new Error(`GitHub dispatch ${res.status}: ${(await res.text()).slice(0, 200)}`);
+              console.log(JSON.stringify({ relayed: alarm.name, state: alarm.state }));
+            }
+          };
+
+  AlertRelayPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AlertRelayFunction
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref AlertsTopic
+
+  AlertRelaySubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref AlertsTopic
+      Protocol: lambda
+      Endpoint: !GetAtt AlertRelayFunction.Arn
+
+  OnCallRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: GitHub Actions on-call agent (main) - read-only CloudWatch, Logs, X-Ray, EC2 status
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - CreateOidc
+                - !Ref GitHubOidcProvider
+                - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub:
+                  - !Sub repo:${GitHubRepo}:ref:refs/heads/main
+                  - !Sub ${GitHubOidcSubjectPrefix}:ref:refs/heads/main
+      Policies:
+        - PolicyName: read-telemetry
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudwatch:DescribeAlarms
+                  - cloudwatch:DescribeAlarmHistory
+                  - cloudwatch:GetMetricData
+                  - cloudwatch:ListMetrics
+                  - xray:GetTraceSummaries
+                  - xray:BatchGetTraces
+                  - logs:GetQueryResults
+                  - ec2:DescribeInstanceStatus
+                Resource: "*"
+              - Effect: Allow
+                Action: [logs:StartQuery, logs:StopQuery, logs:FilterLogEvents]
+                Resource:
+                  - !Sub "${AppLogGroup.Arn}"
 
   # ---------- cost guardrail (optional, free) ----------
   MonthlyBudget:
@@ -345,3 +646,11 @@ Outputs:
     Value: !GetAtt DeployRole.Arn
   Region:
     Value: !Ref AWS::Region
+  DevSiteUrl:
+    Description: Development environment (#86)
+    Value: !Join ["", ["https://dev.", !Join ["-", !Split [".", !Ref ElasticIp]], ".sslip.io"]]
+  OnCallRoleArn:
+    Description: Repository variable AWS_ONCALL_ROLE_ARN (read-only, #91)
+    Value: !GetAtt OnCallRole.Arn
+  DashboardUrl:
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards/dashboard/${AWS::StackName}
