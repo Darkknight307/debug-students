@@ -320,11 +320,10 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                # Ескі (repo:OWNER/REPO) және immutable (repo:OWNER@ID/REPO@ID) пішімдер — екеуінде де тек main
+                # Тек GitHub environments (#86, #87): push → development, «Promote to production» → production.
+                # Ескі (repo:OWNER/REPO) және immutable (repo:OWNER@ID/REPO@ID) пішімдер. environment жарияламаған
+                # workflow (ref:refs/heads/main) бұл рөлді ала алмайды.
                 token.actions.githubusercontent.com:sub:
-                  - !Sub repo:${GitHubRepo}:ref:refs/heads/main
-                  - !Sub ${GitHubOidcSubjectPrefix}:ref:refs/heads/main
-                  # GitHub environments (#86, #87): push → development, manual promotion → production
                   - !Sub repo:${GitHubRepo}:environment:development
                   - !Sub ${GitHubOidcSubjectPrefix}:environment:development
                   - !Sub repo:${GitHubRepo}:environment:production
