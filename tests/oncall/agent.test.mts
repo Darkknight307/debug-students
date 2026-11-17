@@ -98,6 +98,13 @@ test("Gemini квота қатесі: квота мен модель хабар�
   }) as unknown as typeof fetch, async (ms) => void slept.push(ms));
   assert.equal((await perMinute({ contents: [] })).candidates?.[0].content?.parts[0].text, "ok");
   assert.deepEqual(slept, [21_500]);
+
+  // 503 «high demand»: ұзағырақ күтеді (15, 30, 45, 60 с), 5-әрекеттен кейін қате
+  slept.length = 0;
+  let tries = 0;
+  const busy = geminiClient("k", "m", (async () => (tries++, new Response(JSON.stringify({ error: { code: 503, status: "UNAVAILABLE", message: "This model is currently experiencing high demand. Try later." } }), { status: 503 }))) as unknown as typeof fetch, async (ms) => void slept.push(ms));
+  await assert.rejects(busy({ contents: [] }), /^Error: Gemini HTTP 503 UNAVAILABLE; This model is currently experiencing high demand\.$/);
+  assert.deepEqual([tries, slept], [5, [15_000, 30_000, 45_000, 60_000]]);
 });
 
 test("құралдар тек оқиды: metric_series дұрыс CloudWatch сұрауы, шектер қысылады; alarm атауы тазартылады", async () => {

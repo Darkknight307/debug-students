@@ -66,9 +66,14 @@ export function geminiClient(apiKey: string, model: string, fetchImpl: typeof fe
       });
       if (res.ok) return (await res.json()) as GenerateResponse;
       const err = describeError(res.status, await res.text());
-      // 429/5xx — күтіп қайталау (минуттық шек; Google retryDelay берсе — сонша, ең көбі 65 с). Шегі 0 не күндік квота — бірден қате.
-      if ((res.status === 429 || res.status >= 500) && attempt < 4 && !err.hopeless) {
+      // 429 — минуттық шек: Google-дың retryDelay-і (ең көбі 65 с), 4 әрекет. Шегі 0 не күндік квота — бірден қате.
+      if (res.status === 429 && attempt < 4 && !err.hopeless) {
         await sleep(Math.min(err.retryMs ?? attempt * 5_000, 65_000));
+        continue;
+      }
+      // 5xx — модель уақытша жүктелген («high demand»): 15, 30, 45, 60 с күтіп, 5 әрекет (~2,5 мин)
+      if (res.status >= 500 && attempt < 5) {
+        await sleep(attempt * 15_000);
         continue;
       }
       throw new Error(err.message);
