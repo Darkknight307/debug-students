@@ -1,6 +1,7 @@
 import { adminRoute, json, HttpError } from "../../../../../../lib/server/route";
 import { getStore } from "../../../../../../lib/server/store";
 import { afterWrite } from "../../../../../../lib/server/admin";
+import { recordRoundAction } from "../../../../../../lib/server/events";
 import { startRoundPatches } from "../../../../../../lib/contest/logic";
 
 export const runtime = "nodejs";
@@ -17,5 +18,6 @@ export const POST = adminRoute<{ id: string }>(async (_req, _a, { id }) => {
   const contest = await store.getContest(round.contest_id);
   if (contest && (contest.status === "draft" || contest.status === "published")) await store.updateContest(contest.id, { status: "running" });
   afterWrite();
+  recordRoundAction("start", id);
   return json({ round: await store.getRound(id) });
 });

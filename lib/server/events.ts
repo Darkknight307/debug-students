@@ -19,3 +19,8 @@ export function recordLoginFailure(who: "student" | "admin") {
   instruments().loginFailures.add(1, metricAttrs());
   log("warn", "auth.login_failed", { who });
 }
+
+/** Оператордың кезең әрекеттері (#88): әрекет пен кезең id-і ғана — студенттің ешбір дерегі (id-і де) жазылмайды. */
+export function recordRoundAction(action: "start" | "close" | "extend" | "extension", roundId: string, attrs: { minutes?: number; extra_min?: number } = {}) {
+  log("info", `admin.round_${action}`, { round_id: roundId, ...attrs });
+}

@@ -8,7 +8,7 @@ import type { ReadableSpan } from "@opentelemetry/sdk-trace-node";
 import { ExportFilterProcessor, RequestMetricsProcessor, keepSpan, startTelemetry } from "../../lib/server/telemetry.ts";
 import type { SpanProcessor } from "@opentelemetry/sdk-trace-node";
 import { resetInstruments } from "../../lib/server/otel.ts";
-import { recordLoginFailure, recordRegistration, recordSubmission } from "../../lib/server/events.ts";
+import { recordLoginFailure, recordRegistration, recordRoundAction, recordSubmission } from "../../lib/server/events.ts";
 import { sanitize } from "../../lib/server/log.ts";
 
 process.env.DEPLOY_ENV = "production";
@@ -61,6 +61,19 @@ test("қолданба оқиғалары: тіркелу, жауап/жібер
   const m = await collected();
   assert.deepEqual([m.registrations[0].value, m.submissions[0].value, m.login_failures[0].value], [1, 2, 2]);
   for (const k of ["registrations", "submissions", "login_failures"]) assert.deepEqual(m[k][0].attrs, { env: "production" });
+});
+
+test("оператордың кезең әрекеттері құрылымды логқа жазылады — кезең id-і, студенттің дерегі жоқ (#88)", (t) => {
+  const lines: string[] = [];
+  t.mock.method(console, "log", (l: string) => void lines.push(l));
+  recordRoundAction("start", "r-1");
+  recordRoundAction("extend", "r-1", { minutes: 10 });
+  recordRoundAction("extension", "r-1", { extra_min: 15 });
+  assert.deepEqual(lines.map((l) => JSON.parse(l)), [
+    { level: "info", event: "admin.round_start", round_id: "r-1", env: "production" },
+    { level: "info", event: "admin.round_extend", round_id: "r-1", minutes: 10, env: "production" },
+    { level: "info", event: "admin.round_extension", round_id: "r-1", extra_min: 15, env: "production" },
+  ]);
 });
 
 test("X-Ray сүзгісі: health жоқ, 5xx әрдайым, қалғаны trace id бойынша тұрақты үлес", () => {

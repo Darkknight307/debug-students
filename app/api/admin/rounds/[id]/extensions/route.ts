@@ -1,6 +1,7 @@
 import { adminRoute, body, json, HttpError } from "../../../../../../lib/server/route";
 import { getStore } from "../../../../../../lib/server/store";
 import { afterWrite } from "../../../../../../lib/server/admin";
+import { recordRoundAction } from "../../../../../../lib/server/events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,5 +18,6 @@ export const POST = adminRoute<{ id: string }>(async (req, _a, { id }) => {
   const extra_min = Math.min(prev + 5, 60);
   await store.setExtension({ round_id: id, student_id: studentId, extra_min });
   afterWrite();
+  recordRoundAction("extension", id, { extra_min });
   return json({ extra_min });
 });
