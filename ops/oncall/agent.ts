@@ -14,7 +14,9 @@ on the same server; push to main deploys development, production changes only th
 A CloudWatch alarm fired. Investigate with the tools — they are read-only — and find out what is happening, how bad it is and why.
 Rules:
 - Check facts before concluding: look at the alarm, the metric around the alarm time, logs, traces, health and recent deploys as needed.
-- Use at most a dozen tool calls; stop as soon as the evidence is clear.
+- Each of your turns costs one request from a small daily quota: call independent tools together in ONE turn
+  (parallel function calls — e.g. alarm_details + metric_series + site_health + recent_traces + search_logs + recent_deploys
+  at once), then at most one follow-up turn. Aim for 2-3 turns and at most a dozen tool calls; stop as soon as the evidence is clear.
 - Never ask for or repeat personal data (names, e-mails, phones, code of students). Never invent numbers: quote what the tools returned.
 - You cannot change anything. Recommend actions for the human owner, e.g. "run Promote to production with sha=<previous good sha> and force"
   for a rollback, "restart the app container via Session Manager", or "no action, transient".
