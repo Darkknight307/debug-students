@@ -31,6 +31,8 @@ async function main() {
     return { report, footer };
   }, drill);
   console.log(`issue: ${outcome.action}${outcome.issue ? ` #${outcome.issue}` : ""}`);
+  // Issue жазылды, бірақ AI зерттеуі жүрмеді — run қызыл болып, иеге көрінсін
+  if (outcome.degraded) throw new Error(`AI investigation failed: ${outcome.degraded}`);
 }
 
 main().catch((e) => {

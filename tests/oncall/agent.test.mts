@@ -122,6 +122,22 @@ test("issue: ALARM → жаңа incident; қайта ALARM → түсінікт�
   assert.match(f.log[0], /^create \[drill\] Incident \[debug-prod-5xx\]/);
 });
 
+test("модель қолжетімсіз (Gemini 402) — incident issue бәрібір ашылады, себебі degraded-та", async () => {
+  const bodies: string[] = [];
+  const f = fakeIssues(null);
+  f.issues.create = async (_t, b) => (bodies.push(b), 43);
+  const down = async () => { throw new Error("Gemini HTTP 402: {\n  \"error\": { \"message\": \"credits are depleted\" }\n}"); };
+  const out = await respond(alarm, f.issues, down);
+  assert.equal(out.action, "created");
+  assert.equal(out.issue, 43);
+  assert.match(out.degraded ?? "", /^Gemini HTTP 402: \{ "error": \{ "message": "credits are depleted" \} \}$/);
+  assert.match(bodies[0], /AI investigation could not run/);
+  assert.match(bodies[0], /- Reason: /);
+  assert.match(bodies[0], /On-call agent unavailable — Gemini HTTP 402/);
+  const g = fakeIssues(7);
+  assert.deepEqual(await respond(alarm, g.issues, down).then((o) => [o.action, o.issue, Boolean(o.degraded)]), ["commented", 7, true]);
+});
+
 test("alert relay Lambda (stack.yml): SNS alarm → GitHub repository_dispatch cloudwatch-alarm, токен SSM-нен", async () => {
   const stack = readFileSync(new URL("../../infra/aws/stack.yml", import.meta.url), "utf8");
   const code = stack.match(/ZipFile: \|\n([\s\S]*?)\n\n/)![1].split("\n").map((l) => l.slice(10)).join("\n");
