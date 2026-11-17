@@ -27,6 +27,35 @@ export type Generate = (req: GenerateRequest) => Promise<GenerateResponse>;
 
 const API = "https://generativelanguage.googleapis.com/v1beta/models";
 
+type GoogleError = {
+  error?: {
+    status?: string;
+    message?: string;
+    details?: { retryDelay?: string; violations?: { quotaId?: string; quotaMetric?: string; quotaValue?: string; quotaDimensions?: { model?: string } }[] }[];
+  };
+};
+
+/**
+ * Google қатесінің қысқа түсіндірмесі: статус, квота (атауы=шегі, модель), хабардың бірінші сөйлемі.
+ * `retryMs` — Google ұсынған күту; `hopeless` — шегі 0 не күндік квота таусылған (қайталау көмектеспейді).
+ */
+export function describeError(status: number, text: string): { message: string; retryMs?: number; hopeless: boolean } {
+  try {
+    const e = (JSON.parse(text) as GoogleError).error ?? {};
+    const details = e.details ?? [];
+    const quotas = details.flatMap((d) => d.violations ?? []).map((v) => `quota ${v.quotaId ?? v.quotaMetric ?? "?"}=${v.quotaValue ?? "?"}${v.quotaDimensions?.model ? ` (${v.quotaDimensions.model})` : ""}`);
+    const delay = details.find((d) => d.retryDelay)?.retryDelay;
+    const first = String(e.message ?? "").split(/\n|(?<=\.) /)[0].trim();
+    return {
+      message: [`Gemini HTTP ${status}${e.status ? ` ${e.status}` : ""}`, ...quotas, first].filter(Boolean).join("; "),
+      retryMs: delay ? Math.ceil(parseFloat(delay) * 1000) : undefined,
+      hopeless: quotas.some((q) => /=0(\s|$)/.test(q) || /PerDay/i.test(q)),
+    };
+  } catch {
+    return { message: `Gemini HTTP ${status}: ${text.replace(/\s+/g, " ").slice(0, 300)}`, hopeless: false };
+  }
+}
+
 export function geminiClient(apiKey: string, model: string, fetchImpl: typeof fetch = fetch, sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))): Generate {
   return async (req) => {
     for (let attempt = 1; ; attempt++) {
@@ -36,13 +65,13 @@ export function geminiClient(apiKey: string, model: string, fetchImpl: typeof fe
         body: JSON.stringify(req),
       });
       if (res.ok) return (await res.json()) as GenerateResponse;
-      const detail = (await res.text()).slice(0, 300);
-      // 429/5xx — қысқа күтіп қайталау (тегін тарифтің минуттық шегі)
-      if ((res.status === 429 || res.status >= 500) && attempt < 4) {
-        await sleep(attempt * 5_000);
+      const err = describeError(res.status, await res.text());
+      // 429/5xx — күтіп қайталау (минуттық шек; Google retryDelay берсе — сонша, ең көбі 65 с). Шегі 0 не күндік квота — бірден қате.
+      if ((res.status === 429 || res.status >= 500) && attempt < 4 && !err.hopeless) {
+        await sleep(Math.min(err.retryMs ?? attempt * 5_000, 65_000));
         continue;
       }
-      throw new Error(`Gemini HTTP ${res.status}: ${detail}`);
+      throw new Error(err.message);
     }
   };
 }

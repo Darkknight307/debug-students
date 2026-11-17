@@ -5,7 +5,7 @@ import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import { investigate, type Alarm } from "../../ops/oncall/agent.ts";
-import { geminiClient, type GenerateRequest, type GenerateResponse } from "../../ops/oncall/gemini.ts";
+import { describeError, geminiClient, type GenerateRequest, type GenerateResponse } from "../../ops/oncall/gemini.ts";
 import { buildTools, clip, type Tool } from "../../ops/oncall/tools.ts";
 import { respond, type Issues } from "../../ops/oncall/github.ts";
 
@@ -73,6 +73,31 @@ test("geminiClient: дұрыс URL мен кілт тақырыбы; 429-да қ
   assert.equal(seen[0].key, "k-123");
   const bad = geminiClient("k", "m", (async () => new Response("nope", { status: 400 })) as unknown as typeof fetch, async () => {});
   await assert.rejects(bad({ contents: [] }), /Gemini HTTP 400/);
+});
+
+test("Gemini квота қатесі: квота мен модель хабардың басында; шегі 0 — қайталамайды; retryDelay сақталады", async () => {
+  const body = (quotaId: string, value: string, delay?: string) => JSON.stringify({ error: { code: 429, status: "RESOURCE_EXHAUSTED",
+    message: "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits.\n* Quota exceeded for metric: x",
+    details: [{ "@type": "type.googleapis.com/google.rpc.QuotaFailure", violations: [{ quotaId, quotaValue: value, quotaDimensions: { model: "gemini-x-flash" } }] }, ...(delay ? [{ "@type": "type.googleapis.com/google.rpc.RetryInfo", retryDelay: delay }] : [])] } });
+  assert.deepEqual(describeError(429, body("GenerateRequestsPerDayPerProjectPerModel-FreeTier", "0", "38s")), {
+    message: "Gemini HTTP 429 RESOURCE_EXHAUSTED; quota GenerateRequestsPerDayPerProjectPerModel-FreeTier=0 (gemini-x-flash); You exceeded your current quota, please check your plan and billing details.",
+    retryMs: 38_000,
+    hopeless: true,
+  });
+  assert.equal(describeError(502, "<html>bad gateway</html>").message, "Gemini HTTP 502: <html>bad gateway</html>");
+
+  let calls = 0;
+  const slept: number[] = [];
+  const zero = geminiClient("k", "m", (async () => (calls++, new Response(body("GenerateRequestsPerDayPerProjectPerModel-FreeTier", "0"), { status: 429 }))) as unknown as typeof fetch, async (ms) => void slept.push(ms));
+  await assert.rejects(zero({ contents: [] }), /quota GenerateRequestsPerDay.*=0 \(gemini-x-flash\)/);
+  assert.equal(calls, 1);
+  const statuses = [429, 200];
+  const perMinute = geminiClient("k", "m", (async () => {
+    const st = statuses.shift()!;
+    return new Response(st === 200 ? JSON.stringify(model([{ text: "ok" }])) : body("GenerateRequestsPerMinutePerProjectPerModel-FreeTier", "10", "21.5s"), { status: st });
+  }) as unknown as typeof fetch, async (ms) => void slept.push(ms));
+  assert.equal((await perMinute({ contents: [] })).candidates?.[0].content?.parts[0].text, "ok");
+  assert.deepEqual(slept, [21_500]);
 });
 
 test("құралдар тек оқиды: metric_series дұрыс CloudWatch сұрауы, шектер қысылады; alarm атауы тазартылады", async () => {
