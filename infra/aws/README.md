@@ -139,6 +139,9 @@ Dev secrets are generated on the server at the first dev deploy. A dev deploy ne
 
 `app` / `app-dev` → OTLP/HTTP → `otel` (AWS Distro for OpenTelemetry collector, `otel-collector.yaml`) →
 X-Ray (traces), CloudWatch Metrics via EMF (namespace `DebugStudents`, dimension `env`) and CloudWatch Logs.
+`http_latency` / `http_5xx` cover what Next.js serves dynamically (API routes, server-rendered pages). Static files
+are not traced — including the landing and leaderboard HTML (`/` and `/board` are rewrites to `public/*.html`); the API
+calls those pages make are counted.
 Dashboard: stack output `DashboardUrl`. Alarms (production): `debug-prod-5xx`, `debug-prod-latency`,
 `debug-prod-login-failures`, `debug-prod-submissions-anomaly` (anomaly detection), `debug-instance-status` →
 SNS topic `debug-students-alerts` (+ e-mail when `AlertEmail` is set).
