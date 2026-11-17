@@ -25,8 +25,10 @@ Parameters:
     AllowedValues: [t3.micro, t2.micro]
     Description: Free-tier eligible sizes only
   AmiId:
-    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Type: AWS::EC2::Image::Id
+    Description: >-
+      Pinned Amazon Linux 2023 AMI. A changing "latest" SSM value would replace the instance on every stack update;
+      infra/aws/bootstrap.sh passes the running instance's AMI (or the latest AL2023 for a new stack)
   CreateGitHubOidcProvider:
     Type: String
     Default: "true"

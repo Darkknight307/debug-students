@@ -49,18 +49,24 @@ npm run db:import -- --from "<current production database>" --export data-export
 AWS_PROFILE=<profile> bash infra/aws/bootstrap.sh data-export.json
 ```
 
-`bootstrap.sh` creates/updates the stack, sets the five repository variables, makes sure the latest `main` is deployed
-by CI (re-runs the deploy job if needed), checks `/api/health`, then imports the data file. The steps below are the
-same thing by hand.
+`bootstrap.sh` creates/updates the stack, sets the repository variables, checks `/api/health`, then imports the data
+file. The steps below are the same thing by hand.
+
+The instance AMI is **pinned** (`AmiId`): the script passes the AMI of the running instance (the latest Amazon Linux 2023
+only for a new stack), because a moving "latest" value would make CloudFormation replace the server on every update.
+The script first creates a change set and stops without applying anything if it would replace `Instance`,
+`DataVolume`, `DataVolumeAttachment`, `ElasticIp` or `EipAssociation`.
 
 ## Create the stack
 
 ```bash
+AMI=$(aws ssm get-parameter --name /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64 \
+  --query Parameter.Value --output text)        # an update: the running instance's ImageId instead
 aws cloudformation deploy \
   --stack-name debug-students \
   --template-file infra/aws/stack.yml \
   --capabilities CAPABILITY_NAMED_IAM \
-  --parameter-overrides AlertEmail=you@example.com
+  --parameter-overrides AmiId=$AMI AlertEmail=you@example.com
 aws cloudformation describe-stacks --stack-name debug-students --query "Stacks[0].Outputs" --output table
 ```
 
